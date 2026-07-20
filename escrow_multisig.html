@@ -1,37 +1,104 @@
 {% extends "base.html" %}
 {% block title %}Multisig Escrow {{ escrow.id }} — XMREscrow{% endblock %}
+{% block head %}
+<style>
+.ms-banner{border:1px solid rgba(249,115,22,.35);background-color:rgba(16,20,31,.93);color:var(--text);border-radius:var(--radius);padding:13px 18px;font-size:14px;font-weight:600;line-height:1.6;margin-bottom:16px;position:sticky;top:8px;z-index:50;}
+.ms-banner-green{border-color:rgba(34,197,94,.4);}
+.ms-banner-yellow{border-color:rgba(234,179,8,.45);}
+.ms-banner-red{border-color:rgba(239,68,68,.45);}
+#ms-conf{display:none;margin:-4px 0 16px;}
+#ms-conf .ms-conf-label{font-size:12px;color:var(--muted);margin-bottom:5px;}
+#ms-steps{margin-bottom:14px;}
+.ms-checklist{list-style:none;margin:0 0 12px;padding:0;}
+.ms-checklist li{display:flex;gap:10px;align-items:flex-start;padding:8px 0;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border);}
+.ms-checklist li:last-child{border-bottom:none;}
+.ms-checklist .ck-ico{width:20px;height:20px;flex-shrink:0;border-radius:50%;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:11px;}
+.ms-checklist li.ck-active{color:var(--text);}
+.ms-checklist li.ck-active .ck-ico{border-color:var(--accent);color:var(--accent);animation:ckpulse 1.4s infinite;}
+.ms-checklist li.ck-done .ck-ico{border-color:var(--green);background:rgba(34,197,94,.12);color:var(--green);animation:none;}
+@keyframes ckpulse{0%,100%{opacity:1}50%{opacity:.45}}
+#ms-log-details summary{cursor:pointer;font-size:12px;color:var(--muted);list-style:none;}
+#ms-log-details summary::-webkit-details-marker{display:none;}
+.ms-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 10px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed var(--border2);border-radius:var(--radius);margin-bottom:12px;}
+.ms-empty .ms-empty-ico{font-size:26px;opacity:.7;}
+.role-pill{font-size:12px;padding:4px 12px;}
+#ms-terms{padding:0;}
+#ms-terms summary{cursor:pointer;padding:12px 18px;display:flex;gap:8px 14px;flex-wrap:wrap;align-items:center;font-size:13px;list-style:none;}
+#ms-terms summary::-webkit-details-marker{display:none;}
+#ms-terms .ms-terms-caret{margin-left:auto;color:var(--muted);font-size:12px;}
+#ms-terms .ms-terms-body{padding:2px 18px 14px;}
+#ms-dispute-card summary{cursor:pointer;list-style:none;font-size:13px;font-weight:600;color:var(--muted);}
+#ms-dispute-card summary::-webkit-details-marker{display:none;}
+#ms-dispute-card summary:hover{color:var(--red);}
+#ms-dispute-card .ms-dispute-body{margin-top:12px;}
+@media(max-width:600px){
+  .ms-banner{top:4px;padding:11px 13px;font-size:13px;}
+  #ms-steps .step{padding:7px 2px;font-size:10px;}
+  .btn,.btn-sm{width:100%;min-height:44px;padding:12px 14px;font-size:15px;}
+  textarea,input[type=text]{font-size:16px !important;}
+  #ms-restore,#ms-restore-in{min-height:100px;}
+  .card{padding:14px 12px;}
+}
+</style>
+{% endblock %}
 {% block content %}
-<div class="flex" style="margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+<div class="flex" style="margin-bottom:12px; flex-wrap:wrap; gap:8px;">
   <div class="section-heading" style="margin-bottom:0;">Multisig Escrow</div>
   <code class="mono text-muted" style="font-size:13px; padding-top:5px;">{{ escrow.id }}</code>
   {% if role == 'buyer' %}<span class="role-pill role-buyer">Buyer</span>
   {% elif role == 'seller' %}<span class="role-pill role-seller">Seller</span>{% endif %}
   <span class="badge {% if escrow.ms_state in ('ready','released') %}badge-funded{% else %}badge-awaiting{% endif %}" id="ms-badge">{% if escrow.ms_state=='released' %}Released{% elif escrow.ms_state=='ready' %}Ready{% else %}Setup{% endif %}</span>
 </div>
-{% if escrow.notes %}<p class="text-sm text-muted" style="margin-bottom:16px; font-style:italic;">"{{ escrow.notes }}"</p>{% endif %}
 
-<div class="card">
-  <div class="card-title">Deal Terms — 2-of-3 Multisig</div>
-  <div class="data-row"><span class="data-key">Escrow ID</span><span class="data-val mono" style="font-size:12px;">{{ escrow.id }}</span></div>
-  <div class="data-row"><span class="data-key">Buyer</span><span class="data-val">{{ escrow.buyer_label or "—" }}</span></div>
-  <div class="data-row"><span class="data-key">Seller</span><span class="data-val">{{ escrow.seller_label or "—" }}</span></div>
-  <div class="data-row"><span class="data-key">Amount to fund</span><span class="data-val text-accent">{{ "%.8f"|format(escrow.amount_xmr) }} XMR</span></div>
-  <div class="data-row"><span class="data-key">Service fee</span><span class="data-val text-muted">{{ "%.8f"|format(escrow.fee_xmr) }} XMR</span></div>
-  <div class="data-row"><span class="data-key">Seller receives</span><span class="data-val text-green">{{ "%.8f"|format(escrow.net_xmr) }} XMR</span></div>
-</div>
+<details class="card" id="ms-terms">
+  <summary>
+    <span class="card-title" style="margin-bottom:0;">Deal Terms — 2-of-3</span>
+    <span class="text-accent" style="font-weight:700;">{{ "%.8f"|format(escrow.amount_xmr) }} XMR</span>
+    <span class="text-muted">&rarr; seller receives</span>
+    <span class="text-green" style="font-weight:700;">{{ "%.8f"|format(escrow.net_xmr) }} XMR</span>
+    <span class="ms-terms-caret">details &#9662;</span>
+  </summary>
+  <div class="ms-terms-body">
+    <div class="data-row"><span class="data-key">Escrow ID</span><span class="data-val mono" style="font-size:12px;">{{ escrow.id }}</span></div>
+    <div class="data-row"><span class="data-key">Buyer</span><span class="data-val">{{ escrow.buyer_label or "—" }}</span></div>
+    <div class="data-row"><span class="data-key">Seller</span><span class="data-val">{{ escrow.seller_label or "—" }}</span></div>
+    <div class="data-row"><span class="data-key">Amount to fund</span><span class="data-val text-accent">{{ "%.8f"|format(escrow.amount_xmr) }} XMR</span></div>
+    <div class="data-row"><span class="data-key">Service fee</span><span class="data-val text-muted">{{ "%.8f"|format(escrow.fee_xmr) }} XMR</span></div>
+    <div class="data-row"><span class="data-key">Seller receives</span><span class="data-val text-green">{{ "%.8f"|format(escrow.net_xmr) }} XMR</span></div>
+    {% if escrow.notes %}<div class="data-row"><span class="data-key">Notes</span><span class="data-val text-muted" style="font-style:italic;">"{{ escrow.notes }}"</span></div>{% endif %}
+  </div>
+</details>
 
 {% if not role %}
-<div class="card" style="border-color:var(--red);"><div class="card-title" style="color:var(--red);">Invalid link</div><p class="text-sm text-muted">Missing or invalid token.</p></div>
+<div class="card" style="border-color:var(--red);">
+  <div class="card-title" style="color:var(--red);">Invalid link</div>
+  <p class="text-sm text-muted" style="margin-bottom:10px;">This link is missing its access token or the token is wrong. Escrow links only work exactly as they were given to you.</p>
+  <p class="text-sm text-muted">Re-open the full link you were sent (check it wasn't cut off), or ask the escrow creator to resend it.</p>
+</div>
 {% else %}
 
-{% if escrow.ms_state not in ('ready','released') %}
-<div class="info-box" style="margin-bottom:16px; border-color:rgba(234,179,8,.4); background:rgba(234,179,8,.05);">
-  <strong style="color:var(--yellow);">⚠ Do not close or refresh this tab</strong> until you've saved the restore key at the end of setup.
+<div class="steps" id="ms-steps">
+  <div class="step{% if escrow.ms_state not in ('ready','released') %} active{% endif %}" data-ph="1"><span class="step-num">1</span>Setup key</div>
+  <div class="step{% if escrow.ms_state == 'ready' %} active{% endif %}" data-ph="2"><span class="step-num">2</span>Fund</div>
+  <div class="step" data-ph="3"><span class="step-num">3</span>Confirming</div>
+  <div class="step" data-ph="4"><span class="step-num">4</span>Release</div>
+  <div class="step{% if escrow.ms_state == 'released' %} done{% endif %}" data-ph="5"><span class="step-num">5</span>Done</div>
 </div>
+<div id="ms-banner" class="ms-banner{% if escrow.ms_state=='released' %} ms-banner-green{% endif %}">{% if escrow.ms_state=='released' %}&#10003; This escrow has been released.{% elif escrow.ms_state=='ready' %}Restore your wallet with your saved key to continue.{% else %}Loading the in-browser wallet&hellip; Do not close or refresh this tab during setup.{% endif %}</div>
+<div id="ms-conf"><div class="ms-conf-label">Deposit confirmations: <strong id="ms-conf-n">0</strong>/10</div><div id="ms-conf-bar"></div></div>
+
+{% if escrow.ms_state not in ('ready','released') %}
 <div class="card" style="border-color:var(--accent);">
   <div class="card-title">2-of-3 Multisig Setup</div>
-  <p class="text-sm text-muted" style="margin-bottom:12px;">Your key is generated in this browser and never sent to the server.</p>
-  <div id="ms-status" class="mono" style="font-size:12px; background:var(--bg); border:1px solid var(--border2); border-radius:6px; padding:10px; max-height:200px; overflow:auto; line-height:1.9; color:var(--muted);">Loading wallet library…</div>
+  <p class="text-sm text-muted" style="margin-bottom:12px;">Your key is generated in this browser and never sent to the server. <strong style="color:var(--yellow);">Do not close or refresh this tab</strong> until you've saved your restore key.</p>
+  <ul class="ms-checklist" id="ms-checklist">
+    <li id="ck-1"><span class="ck-ico">1</span><span>Create your key in this browser</span></li>
+    <li id="ck-2"><span class="ck-ico">2</span><span>Exchange keys with the other party &amp; operator <span class="text-muted">(both parties must be online — usually under a minute)</span></span></li>
+    <li id="ck-3"><span class="ck-ico">3</span><span>Wallet ready — save your restore key</span></li>
+  </ul>
+  <details id="ms-log-details"><summary>&#9656; Technical log</summary>
+  <div id="ms-status" class="mono" style="font-size:12px; background:var(--bg); border:1px solid var(--border2); border-radius:6px; padding:10px; max-height:200px; overflow:auto; line-height:1.9; color:var(--muted); margin-top:8px;">Loading wallet library…</div>
+  </details>
   <button id="ms-start" class="btn btn-primary mt-12" style="width:100%; display:none;">Begin multisig setup</button>
 </div>
 <div class="card" id="ms-restore-card" style="display:none; border-color:var(--yellow);">
@@ -72,8 +139,11 @@
 {% else %}
 <div class="card" id="ms-seller" style="display:none;">
   <div class="card-title">Your Payout Address</div>
-  <div id="ms-seller-deposit" class="text-sm" style="color:var(--muted); line-height:1.7; margin-bottom:14px;"></div>
-  <p class="text-sm text-muted" style="margin-bottom:10px;">Where you'll receive funds when the buyer releases. You don't see or handle the deposit address.</p>
+  <div class="ms-empty" id="ms-seller-depwrap">
+    <div class="ms-empty-ico">&#8987;</div>
+    <div id="ms-seller-deposit">Waiting for the buyer to fund the escrow — nothing for you to do yet.</div>
+  </div>
+  <p class="text-sm text-muted" style="margin-bottom:10px;">Where you'll receive funds when the buyer releases. You don't see or handle the deposit address — that's by design.</p>
   <input type="text" id="ms-dest" class="mono" placeholder="Your XMR receiving address" style="font-size:12px;" value="{{ escrow.payout_address or '' }}">
   <button id="ms-dest-btn" class="btn btn-green btn-sm mt-12">Save Payout Address</button>
   <div id="ms-dest-status" class="text-sm mt-12" style="color:var(--muted);">{% if escrow.payout_address %}✓ Saved. Keep this page open — when the buyer releases you'll be asked to confirm.{% endif %}</div>
@@ -96,13 +166,15 @@
 </div>
 {% endif %}
 {% if role and escrow.ms_state == 'ready' %}
-<div class="card" id="ms-dispute-card" style="border-color:rgba(239,68,68,.2);">
-  <div class="card-title">Problem with this trade?</div>
-  <p class="text-sm text-muted" style="margin-bottom:10px;">If the other party won't cooperate, raise a dispute. The operator reviews and co-signs a fair resolution &mdash; refund to buyer or release to seller. Explain clearly in the chat above and provide evidence.</p>
-  <textarea id="ms-dispute-reason" maxlength="1000" placeholder="Describe the issue clearly..." style="min-height:70px; font-size:13px;"></textarea>
-  <button id="ms-dispute-btn" class="btn btn-red btn-sm mt-12">&#9888; Raise Dispute</button>
-  <div id="ms-dispute-status" class="text-sm mt-12" style="color:var(--muted);"></div>
-</div>
+<details class="card" id="ms-dispute-card" style="border-color:rgba(239,68,68,.2);">
+  <summary>&#9888; Problem with this trade?</summary>
+  <div class="ms-dispute-body">
+    <p class="text-sm text-muted" style="margin-bottom:10px;">If the other party won't cooperate, raise a dispute. The operator reviews and co-signs a fair resolution &mdash; refund to buyer or release to seller. Explain clearly in the chat and provide evidence.</p>
+    <textarea id="ms-dispute-reason" maxlength="1000" placeholder="Describe the issue clearly..." style="min-height:70px; font-size:13px;"></textarea>
+    <button id="ms-dispute-btn" class="btn btn-red btn-sm mt-12">&#9888; Raise Dispute</button>
+    <div id="ms-dispute-status" class="text-sm mt-12" style="color:var(--muted);"></div>
+  </div>
+</details>
 {% endif %}
 <div class="card" id="ms-chat" style="border-color:rgba(249,115,22,0.2);">
   <div class="card-title">&#128172; Escrow Chat</div>
@@ -127,6 +199,22 @@
   const netType=()=>NET==="mainnet"?XMR.MoneroNetworkType.MAINNET:NET==="testnet"?XMR.MoneroNetworkType.TESTNET:XMR.MoneroNetworkType.STAGENET;
   const b64ToBytes=b=>{const s=atob(b.trim());const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;};
   async function makeConn(){ const c=new XMR.MoneroRpcConnection({uri:NODE}); try{await c.checkConnection(8000);}catch(e){} return c; }
+  // phase stepper + action banner + global conf bar + setup checklist
+  let keySaved=(MS_STATE==="ready"||MS_STATE==="released");
+  function setBanner(msg,tone){ const b=document.getElementById("ms-banner"); if(b&&msg!==undefined){ b.innerHTML=msg; b.className="ms-banner"+(tone?" ms-banner-"+tone:""); } }
+  function setPhase(n,msg,tone){
+    if(!keySaved && n>1){ msg="&#9888; Save your restore key above before continuing — you'll need it to release or refund later."; tone="yellow"; }
+    document.querySelectorAll("#ms-steps .step").forEach(s=>{ const p=+s.dataset.ph; s.classList.remove("active","done"); if(p<n)s.classList.add("done"); else if(p===n)s.classList.add("active"); });
+    if(n>=5){ document.querySelectorAll("#ms-steps .step").forEach(s=>s.classList.add("done")); }
+    setBanner(msg,tone);
+  }
+  function setConf(n){ const w=document.getElementById("ms-conf"); if(!w)return; w.style.display="";
+    document.getElementById("ms-conf-n").textContent=Math.min(n,10);
+    document.getElementById("ms-conf-bar").innerHTML=confBar(Math.min(n,10),10); }
+  function ck(i,state){ const el=document.getElementById("ck-"+i); if(!el)return;
+    el.classList.remove("ck-active","ck-done");
+    if(state==="active")el.classList.add("ck-active");
+    if(state==="done"){el.classList.add("ck-done"); el.querySelector(".ck-ico").innerHTML="&#10003;";} }
   // API
   async function apiPost(path, fields){ for(let a=0;;a++){ const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(fields)}); if(r.ok) return await r.json(); if((r.status===502||r.status===503||r.status===504)&&a<8){ await sleep(2000); continue; } throw new Error(path+" HTTP "+r.status); } }
   const postCeremony=(kind,round,blob)=>apiPost(`/e/${EID}/msig/ceremony`,{token:TOKEN,kind,round:String(round),blob});
@@ -155,7 +243,7 @@
     const dbtn=document.getElementById("ms-dispute-btn"), dr=document.getElementById("ms-dispute-reason"), ds=document.getElementById("ms-dispute-status");
     const banner=document.getElementById("ms-dispute-banner"), dcard=document.getElementById("ms-dispute-card");
     const rbtn=document.getElementById("ms-refund-btn");
-    function showDispute(){ if(banner)banner.style.display=""; if(dcard)dcard.style.display="none"; }
+    function showDispute(){ if(banner)banner.style.display=""; if(dcard)dcard.style.display="none"; setBanner("&#9888; Dispute open — the operator is reviewing and will co-sign a fair resolution. Explain your side in the chat.","red"); }
     if(dbtn) dbtn.onclick=async()=>{ const reason=dr.value.trim(); if(reason.length<5){ ds.textContent="Please describe the issue first."; return; } dbtn.disabled=true; ds.textContent="Submitting...";
       try{ const r=await fetch(`/e/${EID}/msig/dispute`,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({token:TOKEN,reason})}); const j=await r.json();
         if(j.ok){ ds.innerHTML="<span style=\'color:var(--red)\'>&#9888; Dispute raised. The operator has been notified.</span>"; showDispute(); } else { ds.textContent=j.error||"failed"; dbtn.disabled=false; } }catch(e){ ds.textContent="failed"; dbtn.disabled=false; } };
@@ -167,14 +255,16 @@
   // BUYER deposit watch + release
   async function watchDeposit(w){
     const el=document.getElementById("ms-deposit-status"); const expected=BigInt(Math.round(AMOUNT*1e12));
+    let fails=0;
     while(true){
       try{ await w.sync(); try{await w.getOutputs();}catch(e){}
+        fails=0;
         const bal=BigInt(await w.getBalance()), unlocked=BigInt(await w.getUnlockedBalance());
-        if(bal===0n){ el.innerHTML="⏳ Waiting for your deposit to arrive on-chain… <strong>0/10 blocks</strong>"+confBar(0,10); }
-        else if(bal<expected){ el.innerHTML="<span style='color:var(--yellow)'>⚠ Underpaid — received "+fmt(bal)+" of "+fmt(expected)+" XMR. Send the remaining <strong>"+fmt(expected-bal)+" XMR</strong> to the same address.</span>"; }
-        else if(unlocked<bal){ let conf=0; try{ const _txs=await w.getTxs(); for(const _t of _txs){ const _c=_t.getNumConfirmations?_t.getNumConfirmations():0; if(_c!=null) conf=Math.max(conf,_c); } }catch(e){} const shown=Math.min(conf,10); el.innerHTML="<span style='color:var(--accent)'>✓ Received "+fmt(bal)+" XMR — confirming <strong>"+shown+"/10 blocks</strong> (unlocks at 10)…</span>"+confBar(shown,10); }
-        else { el.innerHTML="<span style='color:var(--green)'>✓ Funded &amp; unlocked ("+fmt(unlocked)+" XMR).</span>"+confBar(10,10); const b=document.getElementById("ms-release"); b.style.display=""; b.onclick=()=>doRelease(w); return; }
-      }catch(e){ el.innerHTML="⏳ Connecting to the network — reattempting…"+confBar(0,10); }
+        if(bal===0n){ el.innerHTML="⏳ Waiting for your deposit to arrive on-chain… <strong>0/10 blocks</strong>"+confBar(0,10); setPhase(2,"Fund the escrow — send <strong>"+fmt(expected)+" XMR</strong> to the address below."); }
+        else if(bal<expected){ el.innerHTML="<span style='color:var(--yellow)'>⚠ Underpaid — received "+fmt(bal)+" of "+fmt(expected)+" XMR. Send the remaining <strong>"+fmt(expected-bal)+" XMR</strong> to the same address.</span>"; setPhase(2,"&#9888; Underpaid — send the remaining <strong>"+fmt(expected-bal)+" XMR</strong> to the same address.","yellow"); setConf(0); }
+        else if(unlocked<bal){ let conf=0; try{ const _txs=await w.getTxs(); for(const _t of _txs){ const _c=_t.getNumConfirmations?_t.getNumConfirmations():0; if(_c!=null) conf=Math.max(conf,_c); } }catch(e){} const shown=Math.min(conf,10); el.innerHTML="<span style='color:var(--accent)'>✓ Received "+fmt(bal)+" XMR — confirming <strong>"+shown+"/10 blocks</strong> (unlocks at 10)…</span>"; setConf(shown); setPhase(3,"Deposit received — confirming <strong>"+shown+"/10 blocks</strong>."); }
+        else { el.innerHTML="<span style='color:var(--green)'>✓ Funded &amp; unlocked ("+fmt(unlocked)+" XMR).</span>"; setConf(10); setPhase(4,"&#10003; Funded — once you've received the goods, confirm delivery below to release the funds.","green"); const b=document.getElementById("ms-release"); b.style.display=""; b.onclick=()=>doRelease(w); return; }
+      }catch(e){ fails++; el.innerHTML=(fails>6)?"⏳ The Monero node is catching up — this can take a few minutes. Leave this page open; it will resume automatically.":"⏳ Connecting to the network — reattempting…"; }
       await sleep(15000);
     }
   }
@@ -184,7 +274,7 @@
       rs.textContent="Checking seller payout address…"; let s=await getStateR();
       if(!s.payout){ rs.innerHTML="<span style='color:var(--red)'>Seller hasn't set their payout address yet — ask them in chat.</span>"; b.disabled=false; return; }
       rs.textContent="Syncing wallet…"; await w.sync(); try{await w.getOutputs();}catch(e){}
-      rs.textContent="Exchanging signing data with the other party (keep both pages open)…";
+      rs.textContent="Exchanging signing data with the other party (keep both pages open)…"; setBanner("Releasing — exchanging signatures. Keep this page open.");
       await postSync(await w.exportMultisigHex());
       const o=await waitOthers("sync:0",["seller","operator"]); await w.importMultisigHex([o.seller,o.operator]);
       rs.textContent="Building the payout transaction…";
@@ -192,24 +282,28 @@
       const dests=[{address:s.payout,amount:net}]; if(s.fee_addr && fee>0n) dests.push({address:s.fee_addr,amount:fee});
       const txs=await w.createTxs({accountIndex:0,destinations:dests,subtractFeeFrom:[0],relay:false});
       await postTx("partial", txs[0].getTxSet().getMultisigTxHex());
-      rs.innerHTML="<span style='color:var(--accent)'>✓ Signed. Waiting for the seller to co-sign &amp; broadcast…</span>";
-      for(let i=0;i<180;i++){ try{ const s2=await getState(); if(s2.released){ rs.innerHTML="<span style='color:var(--green)'>✓✓ Released! Payout TX: <span class='mono' style='font-size:11px'>"+escq(s2.tx||"")+"</span></span>"; document.getElementById("ms-badge").textContent="Released"; return; } }catch(e){} await sleep(4000); }
-      rs.innerHTML="<span style='color:var(--yellow)'>Still waiting — the seller must have their page open to co-sign.</span>";
+      rs.innerHTML="<span style='color:var(--accent)'>✓ Signed. Waiting for the seller to co-sign &amp; broadcast…</span>"; setBanner("&#10003; Signed — waiting for the seller to co-sign &amp; broadcast.");
+      for(let i=0;i<180;i++){ try{ const s2=await getState(); if(s2.released){ rs.innerHTML="<span style='color:var(--green)'>✓✓ Released! Payout TX: <span class='mono' style='font-size:11px'>"+escq(s2.tx||"")+"</span></span>"; document.getElementById("ms-badge").textContent="Released"; setPhase(5,"&#10003;&#10003; Released — payout broadcast. You're done; you can close this page.","green"); return; } }catch(e){} await sleep(4000); }
+      rs.innerHTML="<span style='color:var(--yellow)'>Still waiting — the seller must have their page open to co-sign.</span>"; setBanner("Waiting for the seller — they must have their page open to co-sign.","yellow");
     }catch(e){ rs.innerHTML="<span style='color:var(--red)'>Release error: "+(e.message||e)+"</span>"; b.disabled=false; }
   }
 
   // SELLER payout + auto co-sign watcher
   async function sellerDepositWatch(w){
     const el=document.getElementById("ms-seller-deposit"); if(!el) return;
+    const wrap=document.getElementById("ms-seller-depwrap");
     const expected=BigInt(Math.round(AMOUNT*1e12));
+    let fails=0;
     while(true){
       try{ await w.sync(); try{await w.getOutputs();}catch(e){}
+        fails=0;
         const bal=BigInt(await w.getBalance()), unlocked=BigInt(await w.getUnlockedBalance());
-        if(bal===0n){ el.innerHTML="Waiting for the buyer's deposit\u2026 <strong>0/10 blocks</strong>"+confBar(0,10); }
-        else if(bal<expected){ el.innerHTML="<span style=\'color:var(--yellow)\'>Buyer has sent "+fmt(bal)+" of "+fmt(expected)+" XMR so far.</span>"+confBar(0,10); }
-        else if(unlocked<bal){ let conf=0; try{ const _txs=await w.getTxs(); for(const _t of _txs){ const _c=_t.getNumConfirmations?_t.getNumConfirmations():0; if(_c!=null) conf=Math.max(conf,_c); } }catch(e){} const shown=Math.min(conf,10); el.innerHTML="<span style=\'color:var(--accent)\'>Deposit confirming <strong>"+shown+"/10 blocks</strong> (unlocks at 10)\u2026</span>"+confBar(shown,10); }
-        else { el.innerHTML="<span style=\'color:var(--green)\'>&#10003; Deposit funded &amp; unlocked ("+fmt(unlocked)+" XMR). Waiting for the buyer to confirm delivery &amp; release.</span>"+confBar(10,10); return; }
-      }catch(e){ el.innerHTML="Connecting to the network\u2026"+confBar(0,10); }
+        if(bal>0n && wrap){ wrap.classList.remove("ms-empty"); const ico=wrap.querySelector(".ms-empty-ico"); if(ico)ico.style.display="none"; }
+        if(bal===0n){ el.innerHTML="Waiting for the buyer to fund the escrow — nothing for you to do yet."; setPhase(2,"Waiting for the buyer to fund the escrow&hellip;"); }
+        else if(bal<expected){ el.innerHTML="<span style=\'color:var(--yellow)\'>Buyer has sent "+fmt(bal)+" of "+fmt(expected)+" XMR so far.</span>"; setConf(0); setPhase(2,"Buyer has sent "+fmt(bal)+" of "+fmt(expected)+" XMR so far.","yellow"); }
+        else if(unlocked<bal){ let conf=0; try{ const _txs=await w.getTxs(); for(const _t of _txs){ const _c=_t.getNumConfirmations?_t.getNumConfirmations():0; if(_c!=null) conf=Math.max(conf,_c); } }catch(e){} const shown=Math.min(conf,10); el.innerHTML="<span style=\'color:var(--accent)\'>Deposit confirming <strong>"+shown+"/10 blocks</strong> (unlocks at 10)…</span>"; setConf(shown); setPhase(3,"Deposit confirming <strong>"+shown+"/10 blocks</strong>."); }
+        else { el.innerHTML="<span style=\'color:var(--green)\'>&#10003; Deposit funded &amp; unlocked ("+fmt(unlocked)+" XMR). Waiting for the buyer to confirm delivery &amp; release.</span>"; setConf(10); setPhase(4,"&#10003; Funded — waiting for the buyer to confirm delivery &amp; release.","green"); return; }
+      }catch(e){ fails++; el.innerHTML=(fails>6)?"The Monero node is catching up — this can take a few minutes. Leave this page open.":"Connecting to the network…"; }
       await sleep(15000);
     }
   }
@@ -227,13 +321,14 @@
     (async function watch(){
       while(true){
         try{ const s=await getState();
-          if(s.released){ st.innerHTML="<span style='color:var(--green)'>✓✓ Released! Funds sent to your address. TX: <span class='mono' style='font-size:11px'>"+escq(s.tx||"")+"</span></span>"; document.getElementById("ms-badge").textContent="Released"; return; }
+          if(s.released){ st.innerHTML="<span style='color:var(--green)'>✓✓ Released! Funds sent to your address. TX: <span class='mono' style='font-size:11px'>"+escq(s.tx||"")+"</span></span>"; document.getElementById("ms-badge").textContent="Released"; setPhase(5,"&#10003;&#10003; Released — funds sent to your address. You're done; you can close this page.","green"); return; }
           const so=s.others["sync:0"]||{};
           if(so.buyer && s.payout && !shown){
             shown=true;
             st.innerHTML="<span style='color:var(--yellow)'>&#9888; The buyer confirmed delivery and requested release. Review, then co-sign to send the funds to your address.</span>";
+            setPhase(4,"&#9888; The buyer confirmed delivery — review, then co-sign to receive your funds.","yellow");
             let b=document.getElementById("ms-cosign");
-            if(!b){ b=document.createElement("button"); b.id="ms-cosign"; b.className="btn btn-green btn-lg mt-12"; b.textContent="\u2713 Confirm & co-sign \u2014 release funds to me"; document.getElementById("ms-seller").appendChild(b); }
+            if(!b){ b=document.createElement("button"); b.id="ms-cosign"; b.className="btn btn-green btn-lg mt-12"; b.textContent="✓ Confirm & co-sign — release funds to me"; document.getElementById("ms-seller").appendChild(b); }
             b.style.display=""; b.onclick=()=>sellerCosign(w,b,st);
           }
         }catch(e){}
@@ -244,7 +339,7 @@
   async function sellerCosign(w,b,st){
     b.disabled=true;
     try{
-      st.innerHTML="Syncing your wallet…"; await w.sync(); try{await w.getOutputs();}catch(e){}
+      st.innerHTML="Syncing your wallet…"; setBanner("Co-signing — keep this page open."); await w.sync(); try{await w.getOutputs();}catch(e){}
       st.innerHTML="Exchanging signing data with the other party (keep both pages open)…"; await postSync(await w.exportMultisigHex());
       const o=await waitOthers("sync:0",["buyer","operator"]); await w.importMultisigHex([o.buyer,o.operator]);
       st.innerHTML="Waiting for the buyer's transaction…"; const to=await waitOthers("tx_partial:0",["buyer"]);
@@ -252,12 +347,13 @@
       const hashes=await w.submitMultisigTxHex(signed); const tx=(hashes&&hashes[0])||"";
       await apiPost(`/e/${EID}/msig/released`,{token:TOKEN,txhash:tx});
       st.innerHTML="<span style='color:var(--green)'>✓✓ Released! Funds sent to your address. TX: <span class='mono' style='font-size:11px'>"+escq(tx)+"</span></span>";
-      b.style.display="none"; document.getElementById("ms-badge").textContent="Released";
+      b.style.display="none"; document.getElementById("ms-badge").textContent="Released"; setPhase(5,"&#10003;&#10003; Released — funds sent to your address. You're done; you can close this page.","green");
     }catch(e){ st.innerHTML="<span style='color:var(--red)'>Co-sign error: "+(e.message||e)+"</span>"; b.disabled=false; }
   }
 
   function showResolve(w,ruling){
     const label=ruling==="refund"?"refund":"release";
+    setBanner("&#9878; Operator ruled: <strong>"+label.toUpperCase()+"</strong> in your favor — co-sign below to receive your funds.","green");
     const c=document.createElement("div"); c.className="card"; c.style.borderColor="#818cf8";
     c.innerHTML='<div class="card-title" style="color:#818cf8;">&#9878; Operator ruled: '+label.toUpperCase()+' in your favor</div><p class="text-sm text-muted" style="margin-bottom:12px;">The operator reviewed the dispute and ruled to '+label+' the funds to you. Click below to co-sign with the operator and receive your XMR. Keep this page open.</p><button id="ms-resolve-btn" class="btn btn-green btn-lg">&#10003; Co-sign &amp; receive my funds</button><div id="ms-resolve-status" class="text-sm mt-12" style="color:var(--muted);"></div>';
     const chat=document.getElementById("ms-chat"); chat.parentNode.insertBefore(c,chat);
@@ -277,11 +373,12 @@
       const hashes=await w.submitMultisigTxHex(signed); const tx=(hashes&&hashes[0])||"";
       await apiPost(`/e/${EID}/msig/released`,{token:TOKEN,txhash:tx,kind:ruling});
       rs.innerHTML="<span style=\'color:var(--green)\'>&#10003;&#10003; Funds received! TX: <span class=\'mono\' style=\'font-size:11px\'>"+escq(tx)+"</span></span>";
-      document.getElementById("ms-badge").textContent="Released";
+      document.getElementById("ms-badge").textContent="Released"; setPhase(5,"&#10003;&#10003; Funds received. You're done; you can close this page.","green");
     }catch(e){ rs.innerHTML="<span style=\'color:var(--red)\'>Resolve error: "+(e.message||e)+"</span>"; b.disabled=false; }
   }
   function showDisputeResolving(ruling){
     const other=ruling==="refund"?"buyer":"seller";
+    setBanner("&#9878; Dispute ruled: <strong>"+ruling.toUpperCase()+"</strong> — the "+other+" co-signs with the operator to complete it.","red");
     const c=document.createElement("div"); c.className="card"; c.style.borderColor="rgba(239,68,68,.4)";
     c.innerHTML='<div class="card-title" style="color:var(--red);">&#9878; Dispute ruled: '+ruling.toUpperCase()+'</div><p class="text-sm text-muted">The operator ruled to '+ruling+' the funds to the '+other+'. They co-sign to complete it. If you believe this is wrong, message the operator in the chat below.</p>';
     const chat=document.getElementById("ms-chat"); chat.parentNode.insertBefore(c,chat);
@@ -291,16 +388,17 @@
     if(_st && _st.dispute_ruling){ const winner=_st.dispute_ruling==="refund"?"buyer":"seller"; if(ROLE===winner){ showResolve(w,_st.dispute_ruling); } else { showDisputeResolving(_st.dispute_ruling); } return; }
     if(ROLE==="buyer"){ document.getElementById("ms-dep").textContent=addr; document.getElementById("ms-buyer").style.display=""; watchDeposit(w); } else { sellerFlow(w); } }
 
-  if(typeof XMR==="undefined"){ const el=document.getElementById("ms-status")||document.getElementById("ms-restore-status"); if(el) el.textContent="Wallet library failed to load."; return; }
-  if(typeof WebAssembly==="undefined" || typeof WebAssembly.instantiate!=="function"){ const el=document.getElementById("ms-status")||document.getElementById("ms-restore-status"); if(el) el.innerHTML="<span style='color:var(--yellow)'>&#9888; This browser has <strong>WebAssembly disabled</strong>, so the in-browser multisig wallet can't run.<br><br>On <strong>Tor Browser</strong>: click the shield icon &rarr; <strong>Settings</strong> &rarr; set Security Level to <strong>Standard</strong>, then reload this page.<br><br>Or use an <strong>Operator-Mediated</strong> escrow instead \u2014 it needs no JavaScript and works at every Tor security level.</span>"; return; }
+  if(typeof XMR==="undefined"){ const el=document.getElementById("ms-status")||document.getElementById("ms-restore-status"); if(el) el.textContent="Wallet library failed to load."; setBanner("Wallet library failed to load. <button onclick=\"location.reload()\" class=\"btn btn-ghost btn-sm\" style=\"margin-left:8px;\">&#8635; Reload page</button>","red"); return; }
+  if(typeof WebAssembly==="undefined" || typeof WebAssembly.instantiate!=="function"){ const el=document.getElementById("ms-status")||document.getElementById("ms-restore-status"); if(el) el.innerHTML="<span style='color:var(--yellow)'>&#9888; This browser has <strong>WebAssembly disabled</strong>, so the in-browser multisig wallet can't run.<br><br>On <strong>Tor Browser</strong>: click the shield icon &rarr; <strong>Settings</strong> &rarr; set Security Level to <strong>Standard</strong>, then reload this page.<br><br>Or use an <strong>Operator-Mediated</strong> escrow instead — it needs no JavaScript and works at every Tor security level.</span>"; setBanner("&#9888; WebAssembly is disabled in this browser — see the guidance below, then reload.","yellow"); return; }
 
   if(MS_STATE==="ready" || MS_STATE==="released"){
     const btn=document.getElementById("ms-restore-btn"), st=document.getElementById("ms-restore-status");
+    if(MS_STATE!=="released") setPhase(2,"Restore your wallet with your saved key to continue.");
     btn.onclick=async()=>{ const key=document.getElementById("ms-restore-in").value.trim(); if(!key){ st.textContent="Paste your restore key first."; return; } st.textContent="Restoring your wallet…";
       try{ const w=await XMR.openWalletFull({networkType:netType(),server:await makeConn(),password:"",keysData:b64ToBytes(key)}); if(RH>0){ try{ await w.setRestoreHeight(RH); }catch(e){ try{ await w.setSyncHeight(RH); }catch(e2){} } }
-        const addr=await w.getPrimaryAddress(); if(EXPECTED && addr!==EXPECTED){ st.innerHTML="<span style='color:var(--red)'>That restore key doesn't match this escrow.</span>"; await w.close(); return; }
+        const addr=await w.getPrimaryAddress(); if(EXPECTED && addr!==EXPECTED){ st.innerHTML="<span style='color:var(--red)'>That restore key doesn't match this escrow. Check you pasted the full key for THIS escrow (each escrow has its own).</span>"; await w.close(); return; }
         st.innerHTML="<span style='color:var(--green)'>✓ Wallet restored.</span>"; showNext(addr,w);
-      }catch(e){ st.innerHTML="<span style='color:var(--red)'>Restore failed: "+(e.message||e)+"</span>"; } };
+      }catch(e){ st.innerHTML="<span style='color:var(--red)'>Restore failed: "+(e.message||e)+" — check the key is complete and try again.</span>"; } };
     return;
   }
 
@@ -308,21 +406,24 @@
   async function run(){
     try{
       log("Creating your wallet in-browser…"); const w=await XMR.createWalletFull({networkType:netType(),server:await makeConn()});
+      ck(1,"done"); ck(2,"active");
       log("Wallet ready. Starting key exchange…"); const T=2, others=ROLE==="buyer"?["seller","operator"]:["buyer","operator"];
       await postCeremony("prepare",0,await w.prepareMultisig()); log("Step 1/3 prepared. Waiting for the other party…");
       let o=await waitOthers("prepare:0",others); await postCeremony("make",0,await w.makeMultisig([o[others[0]],o[others[1]]],T,"")); log("Step 2/3 joined. Exchanging keys…");
       let pk="make",pr=0;
       for(let i=0;i<6;i++){ if((await w.getMultisigInfo()).getIsReady())break; o=await waitOthers(`${pk}:${pr}`,others); await postCeremony("exchange",i,gx(await w.exchangeMultisigKeys([o[others[0]],o[others[1]]],""))); log("Step 3/3 exchange round "+(i+1)+"…"); pk="exchange"; pr=i; }
       if(!(await w.getMultisigInfo()).getIsReady()) throw new Error("setup did not finalize");
+      ck(2,"done"); ck(3,"active");
       const addr=await w.getPrimaryAddress(), data=await w.getData(); const keysB64=btoa(String.fromCharCode.apply(null,new Uint8Array(data[0])));
       document.getElementById("ms-restore").value=keysB64; document.getElementById("ms-restore-card").style.display="";
       document.getElementById("ms-restore-dl").onclick=()=>{const bl=new Blob([keysB64],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download="xmrescrow-restore-"+EID+"-"+ROLE+".txt";a.click();};
       document.getElementById("ms-restore-copy").onclick=()=>{try{navigator.clipboard.writeText(keysB64);}catch(e){}};
-      var _cb=document.getElementById("ms-restore-saved"); if(_cb)_cb.onchange=()=>{ if(_cb.checked){ document.getElementById("ms-restore-card").style.display="none"; var _h=document.getElementById("ms-restore-hidden"); if(_h)_h.style.display=""; } };
-      log("✓ Setup complete. SAVE YOUR RESTORE KEY above, then continue below."); document.getElementById("ms-badge").textContent="Ready"; showNext(addr,w);
-    }catch(e){ log("<span style='color:var(--red)'>Error: "+(e.message||e)+"</span>"); }
+      var _cb=document.getElementById("ms-restore-saved"); if(_cb)_cb.onchange=()=>{ if(_cb.checked){ keySaved=true; ck(3,"done"); setBanner("&#10003; Restore key saved — continue below.","green"); document.getElementById("ms-restore-card").style.display="none"; var _h=document.getElementById("ms-restore-hidden"); if(_h)_h.style.display=""; } };
+      log("✓ Setup complete. SAVE YOUR RESTORE KEY above, then continue below."); document.getElementById("ms-badge").textContent="Ready"; setPhase(1,"&#9888; Setup complete — SAVE YOUR RESTORE KEY now, then tick the checkbox to continue.","yellow"); showNext(addr,w);
+    }catch(e){ log("<span style='color:var(--red)'>Error: "+(e.message||e)+"</span>"); setBanner("Setup error: "+escq(e.message||e)+" — if this repeats, this escrow may need to be recreated. Contact support.","red"); var _ld=document.getElementById("ms-log-details"); if(_ld)_ld.open=true; }
   }
-  S.innerHTML=""; log("Wallet library loaded ("+NET+")."); const b=document.getElementById("ms-start"); b.style.display=""; b.onclick=()=>{ b.style.display="none"; run(); };
+  S.innerHTML=""; log("Wallet library loaded ("+NET+")."); setPhase(1,"Click <strong>Begin multisig setup</strong> — your key is generated in this browser and never sent to the server.");
+  const b=document.getElementById("ms-start"); b.style.display=""; b.onclick=()=>{ b.style.display="none"; ck(1,"active"); setPhase(1,"Setting up your key — keep this tab open. Waiting for the other party to join&hellip;"); run(); };
 })();
 </script>
 {% endif %}
