@@ -1,0 +1,3 @@
+a3830e5ffba43b0e34cff714b75c82ff8af52af8f04cdc6a9ff4433219c5f5d6  static/monero.js
+979a1975d03f50c09cc1992111bce554ac6a465b2057a4092ef29c701ea6dd8c  static/monero.worker.js
+495dbf80ef77402090d9503dada04bb7cb9fa78362cbec0648dba790be5058b5  static/xmrescrow-msig.bundle.js
