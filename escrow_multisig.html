@@ -103,7 +103,7 @@
 </div>
 <div class="card" id="ms-restore-card" style="display:none; border-color:var(--yellow);">
   <div class="card-title" style="color:var(--yellow);">⚠ Save Your Restore Key Now</div>
-  <p class="text-sm text-muted" style="margin-bottom:10px;">Needed to release or refund later. Save it safely — it won't be shown again.</p>
+  <p class="text-sm text-muted" style="margin-bottom:10px;">Needed to release or refund later. Save it safely — it won't be shown again. <strong style="color:var(--yellow);">Lose it and only a dispute co-sign with the other party can recover your funds.</strong></p>
   <textarea id="ms-restore" readonly class="mono" style="min-height:120px; font-size:11px;"></textarea>
   <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
     <button id="ms-restore-dl" class="btn btn-ghost btn-sm">⬇ Download</button>
@@ -132,18 +132,26 @@
   <div class="card-title" style="color:var(--accent);">Fund the Escrow</div>
   <p class="text-sm text-muted" style="margin-bottom:10px;">Send exactly <strong class="text-accent">{{ "%.8f"|format(escrow.amount_xmr) }} XMR</strong> to this shared 2-of-3 address:</p>
   <div class="addr-box" id="ms-dep"></div>
+  <div class="info-box" style="margin-top:10px; border-color:rgba(234,179,8,.4); background:rgba(234,179,8,.05); font-size:12px;">
+    <strong style="color:var(--yellow);">Before you fund:</strong> confirm this <strong>exact</strong> address with the seller through your own private channel &mdash; <em>not</em> this chat. You should both see the <strong>same</strong> address. If they differ, <strong>stop and do not fund</strong>.
+  </div>
   <div id="ms-deposit-status" class="text-sm mt-12" style="color:var(--muted); line-height:1.7;">Preparing to watch for your deposit…</div>
   <button id="ms-release" class="btn btn-green btn-lg mt-12" style="display:none;">✓ Confirm delivery &amp; release funds</button>
   <div id="ms-release-status" class="text-sm mt-12" style="color:var(--muted); line-height:1.7;"></div>
 </div>
 {% else %}
+<div class="card" id="ms-verify-addr" style="display:none; border-color:rgba(234,179,8,.4);">
+  <div class="card-title" style="color:var(--yellow);">Verify the escrow address</div>
+  <p class="text-sm text-muted" style="margin-bottom:8px;">This is the shared 2-of-3 deposit address the <strong>buyer</strong> funds. <strong style="color:var(--red);">You are the receiver &mdash; do NOT send anything here.</strong> Shown only so you can confirm it matches what the buyer sees, through your own private channel (not this chat). If the two differ, stop.</p>
+  <div class="addr-box" id="ms-share-addr" style="font-size:11px;"></div>
+</div>
 <div class="card" id="ms-seller" style="display:none;">
   <div class="card-title">Your Payout Address</div>
   <div class="ms-empty" id="ms-seller-depwrap">
     <div class="ms-empty-ico">&#8987;</div>
     <div id="ms-seller-deposit">Waiting for the buyer to fund the escrow — nothing for you to do yet.</div>
   </div>
-  <p class="text-sm text-muted" style="margin-bottom:10px;">Where you'll receive funds when the buyer releases. You don't see or handle the deposit address — that's by design.</p>
+  <p class="text-sm text-muted" style="margin-bottom:10px;">Where you'll receive funds when the buyer releases.</p>
   <input type="text" id="ms-dest" class="mono" placeholder="Your XMR receiving address" style="font-size:12px;" value="{{ escrow.payout_address or '' }}">
   <button id="ms-dest-btn" class="btn btn-green btn-sm mt-12">Save Payout Address</button>
   <div id="ms-dest-status" class="text-sm mt-12" style="color:var(--muted);">{% if escrow.payout_address %}✓ Saved. Keep this page open — when the buyer releases you'll be asked to confirm.{% endif %}</div>
@@ -386,7 +394,7 @@
   async function showNext(addr,w){ window._msigWallet=w;
     let _st=null; try{ _st=await getState(); }catch(e){}
     if(_st && _st.dispute_ruling){ const winner=_st.dispute_ruling==="refund"?"buyer":"seller"; if(ROLE===winner){ showResolve(w,_st.dispute_ruling); } else { showDisputeResolving(_st.dispute_ruling); } return; }
-    if(ROLE==="buyer"){ document.getElementById("ms-dep").textContent=addr; document.getElementById("ms-buyer").style.display=""; watchDeposit(w); } else { sellerFlow(w); } }
+    if(ROLE==="buyer"){ document.getElementById("ms-dep").textContent=addr; document.getElementById("ms-buyer").style.display=""; watchDeposit(w); } else { var _sa=document.getElementById("ms-share-addr"); if(_sa)_sa.textContent=addr; var _vc=document.getElementById("ms-verify-addr"); if(_vc)_vc.style.display=""; sellerFlow(w); } }
 
   if(typeof XMR==="undefined"){ const el=document.getElementById("ms-status")||document.getElementById("ms-restore-status"); if(el) el.textContent="Wallet library failed to load."; setBanner("Wallet library failed to load. <button onclick=\"location.reload()\" class=\"btn btn-ghost btn-sm\" style=\"margin-left:8px;\">&#8635; Reload page</button>","red"); return; }
   if(typeof WebAssembly==="undefined" || typeof WebAssembly.instantiate!=="function"){ const el=document.getElementById("ms-status")||document.getElementById("ms-restore-status"); if(el) el.innerHTML="<span style='color:var(--yellow)'>&#9888; This browser has <strong>WebAssembly disabled</strong>, so the in-browser multisig wallet can't run.<br><br>On <strong>Tor Browser</strong>: click the shield icon &rarr; <strong>Settings</strong> &rarr; set Security Level to <strong>Standard</strong>, then reload this page.<br><br>Or use an <strong>Operator-Mediated</strong> escrow instead — it needs no JavaScript and works at every Tor security level.</span>"; setBanner("&#9888; WebAssembly is disabled in this browser — see the guidance below, then reload.","yellow"); return; }
@@ -415,12 +423,25 @@
       if(!(await w.getMultisigInfo()).getIsReady()) throw new Error("setup did not finalize");
       ck(2,"done"); ck(3,"active");
       const addr=await w.getPrimaryAddress(), data=await w.getData(); const keysB64=btoa(String.fromCharCode.apply(null,new Uint8Array(data[0])));
+      try{ sessionStorage.setItem("xmresc_rk_"+EID, keysB64); }catch(e){}
       document.getElementById("ms-restore").value=keysB64; document.getElementById("ms-restore-card").style.display="";
       document.getElementById("ms-restore-dl").onclick=()=>{const bl=new Blob([keysB64],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download="xmrescrow-restore-"+EID+"-"+ROLE+".txt";a.click();};
       document.getElementById("ms-restore-copy").onclick=()=>{try{navigator.clipboard.writeText(keysB64);}catch(e){}};
-      var _cb=document.getElementById("ms-restore-saved"); if(_cb)_cb.onchange=()=>{ if(_cb.checked){ keySaved=true; ck(3,"done"); setBanner("&#10003; Restore key saved — continue below.","green"); document.getElementById("ms-restore-card").style.display="none"; var _h=document.getElementById("ms-restore-hidden"); if(_h)_h.style.display=""; } };
+      var _cb=document.getElementById("ms-restore-saved"); if(_cb)_cb.onchange=()=>{ if(_cb.checked){ keySaved=true; try{ sessionStorage.removeItem("xmresc_rk_"+EID); }catch(e){} ck(3,"done"); setBanner("&#10003; Restore key saved — continue below.","green"); document.getElementById("ms-restore-card").style.display="none"; var _h=document.getElementById("ms-restore-hidden"); if(_h)_h.style.display=""; } };
       log("✓ Setup complete. SAVE YOUR RESTORE KEY above, then continue below."); document.getElementById("ms-badge").textContent="Ready"; setPhase(1,"&#9888; Setup complete — SAVE YOUR RESTORE KEY now, then tick the checkbox to continue.","yellow"); showNext(addr,w);
     }catch(e){ log("<span style='color:var(--red)'>Error: "+(e.message||e)+"</span>"); setBanner("Setup error: "+escq(e.message||e)+" — if this repeats, this escrow may need to be recreated. Contact support.","red"); var _ld=document.getElementById("ms-log-details"); if(_ld)_ld.open=true; }
+  }
+  var _rk=null; try{ _rk=sessionStorage.getItem("xmresc_rk_"+EID); }catch(e){}
+  if(_rk){
+    S.innerHTML=""; log("Recovering your setup after a refresh\u2026");
+    document.getElementById("ms-restore").value=_rk; document.getElementById("ms-restore-card").style.display="";
+    document.getElementById("ms-restore-dl").onclick=()=>{const bl=new Blob([_rk],{type:"text/plain"});const a=document.createElement("a");a.href=URL.createObjectURL(bl);a.download="xmrescrow-restore-"+EID+"-"+ROLE+".txt";a.click();};
+    document.getElementById("ms-restore-copy").onclick=()=>{try{navigator.clipboard.writeText(_rk);}catch(e){}};
+    var _cb2=document.getElementById("ms-restore-saved"); if(_cb2)_cb2.onchange=()=>{ if(_cb2.checked){ keySaved=true; try{ sessionStorage.removeItem("xmresc_rk_"+EID); }catch(e){} ck(3,"done"); setBanner("&#10003; Restore key saved \u2014 continue below.","green"); document.getElementById("ms-restore-card").style.display="none"; var _h=document.getElementById("ms-restore-hidden"); if(_h)_h.style.display=""; } };
+    ck(1,"done"); ck(2,"done"); ck(3,"active"); document.getElementById("ms-badge").textContent="Ready";
+    setPhase(1,"&#9888; Recovered after a refresh \u2014 SAVE your restore key now, then continue.","yellow");
+    (async()=>{ try{ const w=await XMR.openWalletFull({networkType:netType(),server:await makeConn(),password:"",keysData:b64ToBytes(_rk)}); const addr=await w.getPrimaryAddress(); if(EXPECTED && addr!==EXPECTED){ log("<span style=\'color:var(--red)\'>Recovered key doesn\'t match this escrow.</span>"); return; } showNext(addr,w); }catch(e){ log("<span style=\'color:var(--red)\'>Recovery error: "+(e.message||e)+"</span>"); } })();
+    return;
   }
   S.innerHTML=""; log("Wallet library loaded ("+NET+")."); setPhase(1,"Click <strong>Begin multisig setup</strong> — your key is generated in this browser and never sent to the server.");
   const b=document.getElementById("ms-start"); b.style.display=""; b.onclick=()=>{ b.style.display="none"; ck(1,"active"); setPhase(1,"Setting up your key — keep this tab open. Waiting for the other party to join&hellip;"); run(); };
