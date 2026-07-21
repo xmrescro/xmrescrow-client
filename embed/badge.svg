@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="228" height="40" viewBox="0 0 228 40" role="img" aria-label="Escrow with XMREscrow — Monero 2-of-3">
+  <defs>
+    <linearGradient id="xg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF7A1A"/><stop offset="100%" stop-color="#E8530A"/>
+    </linearGradient>
+  </defs>
+  <rect width="228" height="40" rx="7" fill="#10141f" stroke="#262d45" stroke-width="1"/>
+  <!-- shield mark -->
+  <g transform="translate(11,7)">
+    <path d="M13 0 L25 5 L25 14 C25 22 19 25.5 13 27 C7 25.5 1 22 1 14 L1 5 Z" fill="#15110D" stroke="url(#xg)" stroke-width="1.6"/>
+    <circle cx="13" cy="12" r="4" fill="#FF8A33"/>
+    <path d="M10.5 15 L15.5 15 L13.4 22 L12.6 22 Z" fill="#FF8A33"/>
+  </g>
+  <!-- text -->
+  <text x="46" y="17" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="12.5" font-weight="700" fill="#dde2f0">Escrow with <tspan fill="#FF7A1A">XMR</tspan><tspan fill="#dde2f0">escrow</tspan></text>
+  <text x="46" y="31" font-family="ui-monospace,Menlo,monospace" font-size="9.5" fill="#6b7494">Monero · 2-of-3 multisig · no-KYC</text>
+</svg>

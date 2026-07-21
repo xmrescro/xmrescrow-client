@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="248" height="118" viewBox="0 0 248 118" role="img" aria-label="Start a Monero escrow with XMREscrow — 2-of-3 multisig, no-KYC">
+  <defs>
+    <linearGradient id="xg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF7A1A"/><stop offset="100%" stop-color="#E8530A"/>
+    </linearGradient>
+    <linearGradient id="btn" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF7A1A"/><stop offset="100%" stop-color="#F2620E"/>
+    </linearGradient>
+  </defs>
+  <rect width="248" height="118" rx="10" fill="#10141f" stroke="#262d45" stroke-width="1"/>
+
+  <!-- shield mark -->
+  <g transform="translate(16,16)">
+    <path d="M14 0 L27 5.5 L27 15.5 C27 24 20.5 27.8 14 29.5 C7.5 27.8 1 24 1 15.5 L1 5.5 Z" fill="#15110D" stroke="url(#xg)" stroke-width="1.7"/>
+    <circle cx="14" cy="13" r="4.3" fill="#FF8A33"/>
+    <path d="M11.3 16.5 L16.7 16.5 L14.4 24 L13.6 24 Z" fill="#FF8A33"/>
+  </g>
+
+  <!-- title + sub -->
+  <text x="54" y="30" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700" fill="#dde2f0">Escrow with <tspan fill="#FF7A1A">XMR</tspan><tspan fill="#dde2f0">escrow</tspan></text>
+  <text x="54" y="46" font-family="ui-monospace,Menlo,monospace" font-size="9.5" fill="#6b7494">Monero · 2-of-3 multisig · no-KYC</text>
+
+  <!-- start button -->
+  <rect x="16" y="66" width="216" height="36" rx="8" fill="url(#btn)"/>
+  <text x="124" y="89" text-anchor="middle" font-family="-apple-system,Segoe UI,system-ui,sans-serif" font-size="14" font-weight="700" fill="#ffffff">Start Escrow  →</text>
+</svg>
