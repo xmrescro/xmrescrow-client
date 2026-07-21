@@ -44,3 +44,40 @@ The same fingerprint is published at https://xmrescrow.app/pgp, in the signed
 warrant canary at https://xmrescrow.app/canary (verify with `gpg --verify`),
 and on the @xmrescrow profile. Cross-check them. A commit without a green
 "Verified" badge carrying this key is not from the operator. Do not trust, verify.
+
+
+## Build & Verify
+
+**What is ours vs upstream.** The auditable source in this repo is the client
+application code (templates, ceremony glue). The cryptography is not our code:
+`static/monero.js` and `static/monero.worker.js` are the **unmodified build
+artifacts** of [monero-ts](https://github.com/woodser/monero-ts). We redistribute
+that build under its MIT license (see `static/LICENSE.monero-ts`, (c) woodser and
+contributors); we do not claim it as our source.
+
+**Pinned upstream**
+- Package: `monero-ts@0.11.10`
+- Upstream tag commit: `3e9a1df2db5ee4772f8507bd2aac2d290e4f0b94`
+  (verify: `git ls-remote https://github.com/woodser/monero-ts.git refs/tags/v0.11.10`)
+- npm tarball SHA-256: `b4e1abcc193e83f07a4ca0ced04ebd26e55ea570b6ce51bf11ebe2cd2490d17b`
+
+**Bundle hashes (SHA-256)**
+
+```
+a3830e5ffba43b0e34cff714b75c82ff8af52af8f04cdc6a9ff4433219c5f5d6  static/monero.js
+979a1975d03f50c09cc1992111bce554ac6a465b2057a4092ef29c701ea6dd8c  static/monero.worker.js
+```
+
+**Verify yourself — our bundle is byte-identical to npm's**
+
+```
+npm pack monero-ts@0.11.10
+sha256sum monero-ts-0.11.10.tgz     # b4e1abcc...
+tar -xf monero-ts-0.11.10.tgz
+sha256sum package/dist/monero.js package/dist/monero.worker.js
+cmp package/dist/monero.js static/monero.js && echo IDENTICAL
+cmp package/dist/monero.worker.js static/monero.worker.js && echo IDENTICAL
+```
+
+The same files are served live:
+`curl -s https://xmrescrow.app/static/msig/monero.js | sha256sum`
