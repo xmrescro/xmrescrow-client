@@ -227,6 +227,38 @@
   const fmt=a=>(Number(a)/1e12).toFixed(8);
   const confBar=(n,t)=>{let h='<div style="display:flex;gap:3px;margin-top:8px;">';for(let i=0;i<t;i++)h+='<div style="flex:1;height:9px;border-radius:2px;background:'+(i<n?"var(--green)":"var(--border2)")+'"></div>';return h+"</div>";};
   const escq=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  function confirmReview(title, bodyHtml, okLabel){
+    return new Promise(function(resolve){
+      var old=document.getElementById("ms-review"); if(old) old.remove();
+      var c=document.createElement("div"); c.className="card"; c.id="ms-review";
+      c.style.borderColor="var(--yellow)";
+      c.innerHTML='<div class="card-title" style="color:var(--yellow);">'+title+'</div>'+bodyHtml+
+        '<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">'+
+        '<button id="ms-review-ok" class="btn btn-green btn-sm">'+okLabel+'</button>'+
+        '<button id="ms-review-no" class="btn btn-ghost btn-sm">Cancel</button></div>';
+      var chat=document.getElementById("ms-chat"); chat.parentNode.insertBefore(c,chat);
+      c.scrollIntoView({behavior:"smooth",block:"center"});
+      document.getElementById("ms-review-ok").onclick=function(){ c.remove(); resolve(true); };
+      document.getElementById("ms-review-no").onclick=function(){ c.remove(); resolve(false); };
+    });
+  }
+  async function txDestinations(w, hex){
+    try{
+      var set=null;
+      if(typeof w.describeMultisigTxSet==="function"){ try{ set=await w.describeMultisigTxSet(hex); }catch(e){} }
+      if(!set && typeof w.describeTxSet==="function"){ try{ set=await w.describeTxSet({multisigTxHex:hex}); }catch(e){} }
+      if(!set) return null;
+      var txs=(set&&set.getTxs)?set.getTxs():[];
+      var out=[];
+      for(var i=0;i<txs.length;i++){
+        var t=txs[i];
+        var ot=t.getOutgoingTransfer?t.getOutgoingTransfer():null;
+        var ds=(ot&&ot.getDestinations)?ot.getDestinations():[];
+        for(var j=0;j<ds.length;j++){ out.push({addr:ds[j].getAddress(),amt:ds[j].getAmount()}); }
+      }
+      return out.length?out:null;
+    }catch(e){ return null; }
+  }
   const netType=()=>NET==="mainnet"?XMR.MoneroNetworkType.MAINNET:NET==="testnet"?XMR.MoneroNetworkType.TESTNET:XMR.MoneroNetworkType.STAGENET;
   const b64ToBytes=b=>{const s=atob(b.trim());const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;};
   function validateRestoreKey(k){
@@ -345,9 +377,18 @@
       rs.textContent="Exchanging signing data with the other party (keep both pages open)…"; setBanner("Releasing — exchanging signatures. Keep this page open.");
       await postSync(await w.exportMultisigHex());
       const o=await waitOthers("sync:0",["seller","operator"]); await w.importMultisigHex([o.seller,o.operator]);
-      rs.textContent="Building the payout transaction…";
       const net=BigInt(Math.round(s.net_xmr*1e12)), fee=BigInt(Math.round(s.fee_xmr*1e12));
       const dests=[{address:s.payout,amount:net}]; if(s.fee_addr && fee>0n) dests.push({address:s.fee_addr,amount:fee});
+      rs.textContent="Review the payment before signing.";
+      const okReview=await confirmReview("Review before you sign",
+        '<p class="text-sm text-muted" style="margin-bottom:10px;">Check this carefully. Once signed and co-signed, it cannot be reversed.</p>'+
+        '<div class="data-row"><span class="data-key">Seller receives</span><span class="data-val text-green">'+fmt(net)+' XMR</span></div>'+
+        '<div class="data-row"><span class="data-key">To address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(s.payout)+'</span></div>'+
+        (fee>0n?'<div class="data-row"><span class="data-key">Service fee</span><span class="data-val">'+fmt(fee)+' XMR</span></div>':'')+
+        '<p class="text-sm text-muted" style="margin-top:10px;">If the seller address does not match what they gave you privately, cancel and raise a dispute.</p>',
+        "Confirm and sign");
+      if(!okReview){ rs.innerHTML="<span style=\'color:var(--muted)\'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
+      rs.textContent="Building the payout transaction…";
       const txs=await w.createTxs({accountIndex:0,destinations:dests,subtractFeeFrom:[0],relay:false});
       await postTx("partial", txs[0].getTxSet().getMultisigTxHex());
       rs.innerHTML="<span style='color:var(--accent)'>✓ Signed. Waiting for the seller to co-sign &amp; broadcast…</span>"; setBanner("&#10003; Signed — waiting for the seller to co-sign &amp; broadcast.");
@@ -411,6 +452,24 @@
       st.innerHTML="Exchanging signing data with the other party (keep both pages open)…"; await postSync(await w.exportMultisigHex());
       const o=await waitOthers("sync:0",["buyer","operator"]); await w.importMultisigHex([o.buyer,o.operator]);
       st.innerHTML="Waiting for the buyer's transaction…"; const to=await waitOthers("tx_partial:0",["buyer"]);
+      st.innerHTML="Decoding the transaction so you can check it…";
+      const decoded=await txDestinations(w, to.buyer);
+      let body='';
+      if(decoded){
+        body='<p class="text-sm text-muted" style="margin-bottom:10px;">These destinations were read from the transaction itself, not from this page.</p>';
+        for(let i=0;i<decoded.length;i++){
+          body+='<div class="data-row"><span class="data-key">Pays</span><span class="data-val text-green">'+fmt(decoded[i].amt)+' XMR</span></div>'+
+                '<div class="data-row"><span class="data-key">To</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(decoded[i].addr)+'</span></div>';
+        }
+        body+='<p class="text-sm text-muted" style="margin-top:10px;">One of these must be your payout address. If none of them is, cancel and raise a dispute.</p>';
+      } else {
+        let _sv=null; try{ _sv=await getState(); }catch(e){}
+        body='<p class="text-sm text-muted">This transaction could not be decoded in your browser, so it cannot be independently verified here. The values below are what the server reports.</p>'+
+             '<div class="data-row"><span class="data-key">Expected to you</span><span class="data-val text-green">'+(_sv?fmt(BigInt(Math.round((_sv.net_xmr||0)*1e12))):'unknown')+' XMR</span></div>'+
+             '<div class="data-row"><span class="data-key">Your payout address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq((_sv&&_sv.payout)||'')+'</span></div>';
+      }
+      const okSign=await confirmReview("Review before you co-sign", body, "Confirm and co-sign");
+      if(!okSign){ st.innerHTML="<span style=\'color:var(--muted)\'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
       st.innerHTML="Co-signing and broadcasting…"; const sr=await w.signMultisigTxHex(to.buyer); const signed=sr.getSignedMultisigTxHex();
       const hashes=await w.submitMultisigTxHex(signed); const tx=(hashes&&hashes[0])||"";
       await apiPost(`/e/${EID}/msig/released`,{token:TOKEN,txhash:tx});
