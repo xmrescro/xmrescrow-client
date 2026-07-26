@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Multisig Escrow {{ escrow.id }} — XMREscrow{% endblock %}
+{% block title %}Multisig Escrow {{ escrow.id }} - XMREscrow{% endblock %}
 {% block head %}
 <style>
 .ms-banner{border:1px solid rgba(249,115,22,.35);background-color:rgba(16,20,31,.93);color:var(--text);border-radius:var(--radius);padding:13px 18px;font-size:14px;font-weight:600;line-height:1.6;margin-bottom:16px;position:sticky;top:8px;z-index:50;}
@@ -52,7 +52,7 @@
 
 <details class="card" id="ms-terms">
   <summary>
-    <span class="card-title" style="margin-bottom:0;">Deal Terms — 2-of-3</span>
+    <span class="card-title" style="margin-bottom:0;">Deal Terms - 2-of-3</span>
     <span class="text-accent" style="font-weight:700;">{{ "%.8f"|format(escrow.amount_xmr) }} XMR</span>
     <span class="text-muted">&rarr; seller receives</span>
     <span class="text-green" style="font-weight:700;">{{ "%.8f"|format(escrow.net_xmr) }} XMR</span>
@@ -60,8 +60,8 @@
   </summary>
   <div class="ms-terms-body">
     <div class="data-row"><span class="data-key">Escrow ID</span><span class="data-val mono" style="font-size:12px;">{{ escrow.id }}</span></div>
-    <div class="data-row"><span class="data-key">Buyer</span><span class="data-val">{{ escrow.buyer_label or "—" }}</span></div>
-    <div class="data-row"><span class="data-key">Seller</span><span class="data-val">{{ escrow.seller_label or "—" }}</span></div>
+    <div class="data-row"><span class="data-key">Buyer</span><span class="data-val">{{ escrow.buyer_label or "-" }}</span></div>
+    <div class="data-row"><span class="data-key">Seller</span><span class="data-val">{{ escrow.seller_label or "-" }}</span></div>
     <div class="data-row"><span class="data-key">Amount to fund</span><span class="data-val text-accent">{{ "%.8f"|format(escrow.amount_xmr) }} XMR</span></div>
     <div class="data-row"><span class="data-key">Service fee</span><span class="data-val text-muted">{{ "%.8f"|format(escrow.fee_xmr) }} XMR</span></div>
     <div class="data-row"><span class="data-key">Seller receives</span><span class="data-val text-green">{{ "%.8f"|format(escrow.net_xmr) }} XMR</span></div>
@@ -93,8 +93,8 @@
   <p class="text-sm text-muted" style="margin-bottom:12px;">Your key is generated in this browser and never sent to the server. <strong style="color:var(--yellow);">Do not close or refresh this tab</strong> until you've saved your restore key.</p>
   <ul class="ms-checklist" id="ms-checklist">
     <li id="ck-1"><span class="ck-ico">1</span><span>Create your key in this browser</span></li>
-    <li id="ck-2"><span class="ck-ico">2</span><span>Exchange keys with the other party &amp; operator <span class="text-muted">(both parties must be online — usually under a minute)</span></span></li>
-    <li id="ck-3"><span class="ck-ico">3</span><span>Wallet ready — save your restore key</span></li>
+    <li id="ck-2"><span class="ck-ico">2</span><span>Exchange keys with the other party &amp; operator <span class="text-muted">(both parties must be online - usually under a minute)</span></span></li>
+    <li id="ck-3"><span class="ck-ico">3</span><span>Wallet ready - save your restore key</span></li>
   </ul>
   <details id="ms-log-details"><summary>&#9656; Technical log</summary>
   <div id="ms-status" class="mono" style="font-size:12px; background:var(--bg); border:1px solid var(--border2); border-radius:6px; padding:10px; max-height:200px; overflow:auto; line-height:1.9; color:var(--muted); margin-top:8px;">Loading wallet library…</div>
@@ -103,7 +103,7 @@
 </div>
 <div class="card" id="ms-restore-card" style="display:none; border-color:var(--yellow);">
   <div class="card-title" style="color:var(--yellow);">⚠ Save Your Restore Key Now</div>
-  <p class="text-sm text-muted" style="margin-bottom:10px;">Needed to release or refund later. Save it safely — it won't be shown again. <strong style="color:var(--yellow);">Lose it and only a dispute co-sign with the other party can recover your funds.</strong></p>
+  <p class="text-sm text-muted" style="margin-bottom:10px;">Needed to release or refund later. Save it safely - it won't be shown again. <strong style="color:var(--yellow);">Lose it and only a dispute co-sign with the other party can recover your funds.</strong></p>
   <textarea id="ms-restore" readonly class="mono" style="min-height:120px; font-size:11px;"></textarea>
   <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
     <button id="ms-restore-dl" class="btn btn-ghost btn-sm">⬇ Download</button>
@@ -111,7 +111,7 @@
   </div>
   <label style="display:flex; gap:8px; align-items:center; margin-top:14px; font-size:13px; cursor:pointer;">
     <input type="checkbox" id="ms-restore-saved" style="width:16px; height:16px; cursor:pointer;">
-    <span>I have saved my restore key — hide it now.</span>
+    <span>I have saved my restore key - hide it now.</span>
   </label>
 </div>
 <div class="card" id="ms-restore-hidden" style="display:none;">
@@ -133,7 +133,7 @@
   <p class="text-sm text-muted" style="margin-bottom:10px;">Send exactly <strong class="text-accent">{{ "%.8f"|format(escrow.amount_xmr) }} XMR</strong> to this shared 2-of-3 address:</p>
   <div class="addr-box" id="ms-dep"></div>
   <div class="info-box" style="margin-top:10px; border-color:rgba(234,179,8,.4); background:rgba(234,179,8,.05); font-size:12px;">
-    <strong style="color:var(--yellow);">Before you fund:</strong> confirm this <strong>exact</strong> address with the seller through your own private channel &mdash; <em>not</em> this chat. You should both see the <strong>same</strong> address. If they differ, <strong>stop and do not fund</strong>.
+    <strong style="color:var(--yellow);">Before you fund:</strong> confirm this <strong>exact</strong> address with the seller through your own private channel - <em>not</em> this chat. You should both see the <strong>same</strong> address. If they differ, <strong>stop and do not fund</strong>.
   </div>
   <div id="ms-deposit-status" class="text-sm mt-12" style="color:var(--muted); line-height:1.7;">Preparing to watch for your deposit…</div>
   <button id="ms-release" class="btn btn-green btn-lg mt-12" style="display:none;">✓ Confirm delivery &amp; release funds</button>
@@ -142,19 +142,42 @@
 {% else %}
 <div class="card" id="ms-verify-addr" style="display:none; border-color:rgba(234,179,8,.4);">
   <div class="card-title" style="color:var(--yellow);">Verify the escrow address</div>
-  <p class="text-sm text-muted" style="margin-bottom:8px;">This is the shared 2-of-3 deposit address the <strong>buyer</strong> funds. <strong style="color:var(--red);">You are the receiver &mdash; do NOT send anything here.</strong> Shown only so you can confirm it matches what the buyer sees, through your own private channel (not this chat). If the two differ, stop.</p>
+  <p class="text-sm text-muted" style="margin-bottom:8px;">This is the shared 2-of-3 deposit address the <strong>buyer</strong> funds. <strong style="color:var(--red);">You are the receiver - do NOT send anything here.</strong> Shown only so you can confirm it matches what the buyer sees, through your own private channel (not this chat). If the two differ, stop.</p>
   <div class="addr-box" id="ms-share-addr" style="font-size:11px;"></div>
 </div>
 <div class="card" id="ms-seller" style="display:none;">
   <div class="card-title">Your Payout Address</div>
   <div class="ms-empty" id="ms-seller-depwrap">
     <div class="ms-empty-ico">&#8987;</div>
-    <div id="ms-seller-deposit">Waiting for the buyer to fund the escrow — nothing for you to do yet.</div>
+    <div id="ms-seller-deposit">Waiting for the buyer to fund the escrow - nothing for you to do yet.</div>
   </div>
   <p class="text-sm text-muted" style="margin-bottom:10px;">Where you'll receive funds when the buyer releases.</p>
   <input type="text" id="ms-dest" class="mono" placeholder="Your XMR receiving address" style="font-size:12px;" value="{{ escrow.payout_address or '' }}">
   <button id="ms-dest-btn" class="btn btn-green btn-sm mt-12">Save Payout Address</button>
-  <div id="ms-dest-status" class="text-sm mt-12" style="color:var(--muted);">{% if escrow.payout_address %}✓ Saved. Keep this page open — when the buyer releases you'll be asked to confirm.{% endif %}</div>
+  <div id="ms-dest-status" class="text-sm mt-12" style="color:var(--muted);">{% if escrow.payout_address %}✓ Saved. Keep this page open - when the buyer releases you'll be asked to confirm.{% endif %}</div>
+  <div style="border-top:1px solid var(--border); margin-top:16px; padding-top:14px;">
+    <div class="card-title" style="margin-bottom:8px;">Delivery Reference</div>
+    <p class="text-sm text-muted" style="margin-bottom:8px;">Record how you delivered - tracking number, order ID, or "delivered in person" with a date. The buyer and the operator can see it; the operator reads it if a dispute is opened. Text only.</p>
+    <input type="text" id="ms-proof" maxlength="300" class="mono" placeholder="e.g. tracking 1Z999AA10123456784" style="font-size:12px;" value="{{ escrow.delivery_proof or '' }}">
+    <button id="ms-proof-btn" class="btn btn-ghost btn-sm mt-12">Save reference</button>
+    <div id="ms-proof-status" class="text-sm mt-12" style="color:var(--muted);">{% if escrow.delivery_proof %}&#10003; Saved.{% endif %}</div>
+  </div>
+  <script>
+  (function(){
+    var b=document.getElementById("ms-proof-btn"); if(!b) return;
+    b.onclick=async function(){
+      var v=(document.getElementById("ms-proof").value||"").trim();
+      var st=document.getElementById("ms-proof-status");
+      if(!v){ st.textContent="Enter a reference first."; return; }
+      st.textContent="Saving...";
+      try{
+        var r=await fetch("/e/"+{{ escrow.id|tojson }}+"/msig/set_proof",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({token:{{ token|tojson }},proof:v})});
+        var j=await r.json();
+        st.innerHTML=j.ok?"<span style='color:var(--green)'>&#10003; Saved.</span>":(j.error||"failed");
+      }catch(e){ st.textContent="failed"; }
+    };
+  })();
+  </script>
 </div>
 {% endif %}
 
@@ -177,7 +200,7 @@
 <details class="card" id="ms-dispute-card" style="border-color:rgba(239,68,68,.2);">
   <summary>&#9888; Problem with this trade?</summary>
   <div class="ms-dispute-body">
-    <p class="text-sm text-muted" style="margin-bottom:10px;">If the other party won't cooperate, raise a dispute. The operator reviews and co-signs a fair resolution &mdash; refund to buyer or release to seller. Explain clearly in the chat and provide evidence.</p>
+    <p class="text-sm text-muted" style="margin-bottom:10px;">If the other party won't cooperate, raise a dispute. The operator reviews and co-signs a fair resolution - refund to buyer or release to seller. Explain clearly in the chat and provide evidence.</p>
     <textarea id="ms-dispute-reason" maxlength="1000" placeholder="Describe the issue clearly..." style="min-height:70px; font-size:13px;"></textarea>
     <button id="ms-dispute-btn" class="btn btn-red btn-sm mt-12">&#9888; Raise Dispute</button>
     <div id="ms-dispute-status" class="text-sm mt-12" style="color:var(--muted);"></div>
@@ -206,6 +229,14 @@
   const escq=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const netType=()=>NET==="mainnet"?XMR.MoneroNetworkType.MAINNET:NET==="testnet"?XMR.MoneroNetworkType.TESTNET:XMR.MoneroNetworkType.STAGENET;
   const b64ToBytes=b=>{const s=atob(b.trim());const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;};
+  function validateRestoreKey(k){
+    const key=(k||"").replace(/\s+/g,"");
+    if(!key) return {ok:false,msg:"Paste your restore key first."};
+    if(!/^[A-Za-z0-9+/]+=*$/.test(key)) return {ok:false,msg:"That doesn't look like a restore key. It should be one long block of letters and numbers. Paste the whole thing, nothing else."};
+    if(key.length<200) return {ok:false,msg:"That key looks truncated ("+key.length+" characters). Restore keys are far longer - make sure you copied all of it."};
+    try{ atob(key); }catch(e){ return {ok:false,msg:"That key is corrupted or incomplete. Re-copy it from where you saved it."}; }
+    return {ok:true,key:key};
+  }
   async function makeConn(){ const c=new XMR.MoneroRpcConnection({uri:NODE}); try{await c.checkConnection(8000);}catch(e){} return c; }
   // phase stepper + action banner + global conf bar + setup checklist
   let keySaved=(MS_STATE==="ready"||MS_STATE==="released");
@@ -230,7 +261,36 @@
   const postTx=(stage,blob)=>apiPost(`/e/${EID}/msig/tx`,{token:TOKEN,stage,blob});
   async function getState(){ const r=await fetch(`/e/${EID}/msig/state?t=${encodeURIComponent(TOKEN)}`); if(!r.ok) throw new Error("state HTTP "+r.status); return await r.json(); }
   async function getStateR(){ for(let a=0;a<8;a++){ try{ return await getState(); }catch(e){ await sleep(1500);} } throw new Error("state unavailable"); }
-  async function waitOthers(key,need){ for(let i=0;i<450;i++){ try{ const s=await getState(); const o=s.others[key]||{}; if(need.every(p=>o[p])) return o; }catch(e){} await sleep(2000);} throw new Error("timed out waiting for other party ("+key+")"); }
+  async function waitOthers(key,need,label){
+    let netFails=0;
+    for(let i=0;i<450;i++){
+      try{
+        const s=await getState(); netFails=0;
+        const o=s.others[key]||{};
+        if(need.every(p=>o[p])) return o;
+        const secs=i*2;
+        if(secs>0 && secs%10===0){
+          const missing=need.filter(p=>!o[p]);
+          const who=(missing.length===1 && missing[0]==="operator")?"the operator":"the other party";
+          const sa=s.other_seen_ago;
+          let seenTxt="";
+          if(who==="the other party"){
+            if(sa===null||sa===undefined) seenTxt=" They have not opened their link yet.";
+            else if(sa<30) seenTxt=" They are on their page right now.";
+            else if(sa<300) seenTxt=" Last seen "+Math.floor(sa/60)+"m "+(sa%60)+"s ago.";
+            else seenTxt=" Last seen "+Math.floor(sa/60)+" min ago.";
+          }
+          if(secs<60){ setBanner("Waiting for "+who+"&hellip; ("+secs+"s)."+seenTxt+(label?" - "+label:"")); }
+          else { setBanner("&#9888; Still waiting for "+who+" after "+Math.floor(secs/60)+" min."+seenTxt+" Setup needs both parties on their page at the same time - message them in the chat below.","yellow"); }
+        }
+      }catch(e){
+        netFails++;
+        if(netFails>=3 && netFails%3===0){ setBanner("&#9888; Can't reach the server right now ("+netFails+" attempts). This resumes automatically - leave the page open.","yellow"); }
+      }
+      await sleep(2000);
+    }
+    throw new Error("timed out waiting for other party ("+key+")");
+  }
 
   // chat
   (function(){ const box=document.getElementById("ms-chat-msgs"),inp=document.getElementById("ms-chat-in"),btn=document.getElementById("ms-chat-send"); if(!box)return;
@@ -402,7 +462,7 @@
   if(MS_STATE==="ready" || MS_STATE==="released"){
     const btn=document.getElementById("ms-restore-btn"), st=document.getElementById("ms-restore-status");
     if(MS_STATE!=="released") setPhase(2,"Restore your wallet with your saved key to continue.");
-    btn.onclick=async()=>{ const key=document.getElementById("ms-restore-in").value.trim(); if(!key){ st.textContent="Paste your restore key first."; return; } st.textContent="Restoring your wallet…";
+    btn.onclick=async()=>{ const v=validateRestoreKey(document.getElementById("ms-restore-in").value); if(!v.ok){ st.innerHTML="<span style='color:var(--red)'>"+v.msg+"</span>"; return; } const key=v.key; st.textContent="Restoring your wallet…";
       try{ const w=await XMR.openWalletFull({networkType:netType(),server:await makeConn(),password:"",keysData:b64ToBytes(key)}); if(RH>0){ try{ await w.setRestoreHeight(RH); }catch(e){ try{ await w.setSyncHeight(RH); }catch(e2){} } }
         const addr=await w.getPrimaryAddress(); if(EXPECTED && addr!==EXPECTED){ st.innerHTML="<span style='color:var(--red)'>That restore key doesn't match this escrow. Check you pasted the full key for THIS escrow (each escrow has its own).</span>"; await w.close(); return; }
         st.innerHTML="<span style='color:var(--green)'>✓ Wallet restored.</span>"; showNext(addr,w);
@@ -444,7 +504,16 @@
     return;
   }
   S.innerHTML=""; log("Wallet library loaded ("+NET+")."); setPhase(1,"Click <strong>Begin multisig setup</strong> — your key is generated in this browser and never sent to the server.");
+  async function preflight(){
+    const out=[{ok:true,label:"WebAssembly available"}];
+    let ss=false; try{ sessionStorage.setItem("_pf","1"); sessionStorage.removeItem("_pf"); ss=true; }catch(e){}
+    out.push({ok:ss,label:ss?"Browser storage writable (refresh recovery enabled)":"Browser storage blocked - do NOT refresh this tab, your setup cannot be recovered"});
+    let node=false; try{ const r=await fetch(NODE+"/get_info"); node=r.ok; }catch(e){}
+    out.push({ok:node,label:node?"Monero node reachable":"Monero node not reachable right now - setup may stall until it recovers"});
+    return out;
+  }
   const b=document.getElementById("ms-start"); b.style.display=""; b.onclick=()=>{ b.style.display="none"; ck(1,"active"); setPhase(1,"Setting up your key — keep this tab open. Waiting for the other party to join&hellip;"); run(); };
+  (async()=>{ try{ const pf=await preflight(); pf.forEach(x=>log((x.ok?"<span style=\'color:var(--green)\'>&#10003;</span> ":"<span style=\'color:var(--yellow)\'>&#9888;</span> ")+x.label)); }catch(e){} })();
 })();
 </script>
 {% endif %}
