@@ -90,7 +90,7 @@
 {% if escrow.ms_state not in ('ready','released') %}
 <div class="card" style="border-color:var(--accent);">
   <div class="card-title">2-of-3 Multisig Setup</div>
-  <p class="text-sm text-muted" style="margin-bottom:12px;">Your key is generated in this browser and never sent to the server. <strong style="color:var(--yellow);">Do not close or refresh this tab</strong> until you've saved your restore key.</p>
+  <p class="text-sm text-muted" style="margin-bottom:12px;">Your key is generated in this browser and never sent to the server. <strong style="color:var(--yellow);">{{ _('Do not close or refresh this tab') }}</strong> until you've saved your restore key.</p>
   <ul class="ms-checklist" id="ms-checklist">
     <li id="ck-1"><span class="ck-ico">1</span><span>Create your key in this browser</span></li>
     <li id="ck-2"><span class="ck-ico">2</span><span>Exchange keys with the other party &amp; operator <span class="text-muted">(both parties must be online - usually under a minute)</span></span></li>
@@ -99,10 +99,10 @@
   <details id="ms-log-details"><summary>&#9656; Technical log</summary>
   <div id="ms-status" class="mono" style="font-size:12px; background:var(--bg); border:1px solid var(--border2); border-radius:6px; padding:10px; max-height:200px; overflow:auto; line-height:1.9; color:var(--muted); margin-top:8px;">Loading wallet library…</div>
   </details>
-  <button id="ms-start" class="btn btn-primary mt-12" style="width:100%; display:none;">Begin multisig setup</button>
+  <button id="ms-start" class="btn btn-primary mt-12" style="width:100%; display:none;">{{ _('Begin multisig setup') }}</button>
 </div>
 <div class="card" id="ms-restore-card" style="display:none; border-color:var(--yellow);">
-  <div class="card-title" style="color:var(--yellow);">⚠ Save Your Restore Key Now</div>
+  <div class="card-title" style="color:var(--yellow);">⚠ {{ _('Save Your Restore Key Now') }}</div>
   <p class="text-sm text-muted" style="margin-bottom:10px;">Needed to release or refund later. Save it safely - it won't be shown again. <strong style="color:var(--yellow);">Lose it and only a dispute co-sign with the other party can recover your funds.</strong></p>
   <textarea id="ms-restore" readonly class="mono" style="min-height:120px; font-size:11px;"></textarea>
   <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
@@ -122,7 +122,7 @@
   <div class="card-title">Restore Your Wallet</div>
   <p class="text-sm text-muted" style="margin-bottom:10px;">Paste the restore key you saved during setup to continue.</p>
   <textarea id="ms-restore-in" class="mono" placeholder="Paste your restore key" style="min-height:90px; font-size:11px;"></textarea>
-  <button id="ms-restore-btn" class="btn btn-primary btn-sm mt-12">Restore my wallet</button>
+  <button id="ms-restore-btn" class="btn btn-primary btn-sm mt-12">{{ _('Restore my wallet') }}</button>
   <div id="ms-restore-status" class="mono text-sm mt-12" style="color:var(--muted);"></div>
 </div>
 {% endif %}
@@ -136,13 +136,13 @@
     <strong style="color:var(--yellow);">Before you fund:</strong> confirm this <strong>exact</strong> address with the seller through your own private channel - <em>not</em> this chat. You should both see the <strong>same</strong> address. If they differ, <strong>stop and do not fund</strong>.
   </div>
   <div id="ms-deposit-status" class="text-sm mt-12" style="color:var(--muted); line-height:1.7;">Preparing to watch for your deposit…</div>
-  <button id="ms-release" class="btn btn-green btn-lg mt-12" style="display:none;">✓ Confirm delivery &amp; release funds</button>
+  <button id="ms-release" class="btn btn-green btn-lg mt-12" style="display:none;">✓ {{ _('Confirm delivery and release funds') }}</button>
   <div id="ms-release-status" class="text-sm mt-12" style="color:var(--muted); line-height:1.7;"></div>
 </div>
 {% else %}
 <div class="card" id="ms-verify-addr" style="display:none; border-color:rgba(234,179,8,.4);">
   <div class="card-title" style="color:var(--yellow);">Verify the escrow address</div>
-  <p class="text-sm text-muted" style="margin-bottom:8px;">This is the shared 2-of-3 deposit address the <strong>buyer</strong> funds. <strong style="color:var(--red);">You are the receiver - do NOT send anything here.</strong> Shown only so you can confirm it matches what the buyer sees, through your own private channel (not this chat). If the two differ, stop.</p>
+  <p class="text-sm text-muted" style="margin-bottom:8px;">This is the shared 2-of-3 deposit address the <strong>buyer</strong> funds. <strong style="color:var(--red);">{{ _('You are the receiver - do NOT send anything here.') }}</strong> Shown only so you can confirm it matches what the buyer sees, through your own private channel (not this chat). If the two differ, stop.</p>
   <div class="addr-box" id="ms-share-addr" style="font-size:11px;"></div>
 </div>
 <div class="card" id="ms-seller" style="display:none;">
@@ -153,13 +153,13 @@
   </div>
   <p class="text-sm text-muted" style="margin-bottom:10px;">Where you'll receive funds when the buyer releases.</p>
   <input type="text" id="ms-dest" class="mono" placeholder="Your XMR receiving address" style="font-size:12px;" value="{{ escrow.payout_address or '' }}">
-  <button id="ms-dest-btn" class="btn btn-green btn-sm mt-12">Save Payout Address</button>
+  <button id="ms-dest-btn" class="btn btn-green btn-sm mt-12">{{ _('Save Payout Address') }}</button>
   <div id="ms-dest-status" class="text-sm mt-12" style="color:var(--muted);">{% if escrow.payout_address %}✓ Saved. Keep this page open - when the buyer releases you'll be asked to confirm.{% endif %}</div>
   <div style="border-top:1px solid var(--border); margin-top:16px; padding-top:14px;">
     <div class="card-title" style="margin-bottom:8px;">Delivery Reference</div>
     <p class="text-sm text-muted" style="margin-bottom:8px;">Record how you delivered - tracking number, order ID, or "delivered in person" with a date. The buyer and the operator can see it; the operator reads it if a dispute is opened. Text only.</p>
     <input type="text" id="ms-proof" maxlength="300" class="mono" placeholder="e.g. tracking 1Z999AA10123456784" style="font-size:12px;" value="{{ escrow.delivery_proof or '' }}">
-    <button id="ms-proof-btn" class="btn btn-ghost btn-sm mt-12">Save reference</button>
+    <button id="ms-proof-btn" class="btn btn-ghost btn-sm mt-12">{{ _('Save reference') }}</button>
     <div id="ms-proof-status" class="text-sm mt-12" style="color:var(--muted);">{% if escrow.delivery_proof %}&#10003; Saved.{% endif %}</div>
   </div>
   <script>
@@ -192,7 +192,7 @@
   <div class="card-title">Refund Address <span class="text-muted" style="font-weight:400; font-size:12px;">(recommended)</span></div>
   <p class="text-sm text-muted" style="margin-bottom:10px;">If a dispute is resolved in your favor, your refund is sent here. Set it now so you're covered.</p>
   <input type="text" id="ms-refund-in" class="mono" placeholder="Your XMR refund address" style="font-size:12px;" value="{{ escrow.refund_address or '' }}">
-  <button id="ms-refund-btn" class="btn btn-ghost btn-sm mt-12">Save Refund Address</button>
+  <button id="ms-refund-btn" class="btn btn-ghost btn-sm mt-12">{{ _('Save Refund Address') }}</button>
   <div id="ms-refund-status" class="text-sm mt-12" style="color:var(--muted);">{% if escrow.refund_address %}&#10003; Saved.{% endif %}</div>
 </div>
 {% endif %}
@@ -202,7 +202,7 @@
   <div class="ms-dispute-body">
     <p class="text-sm text-muted" style="margin-bottom:10px;">If the other party won't cooperate, raise a dispute. The operator reviews and co-signs a fair resolution - refund to buyer or release to seller. Explain clearly in the chat and provide evidence.</p>
     <textarea id="ms-dispute-reason" maxlength="1000" placeholder="Describe the issue clearly..." style="min-height:70px; font-size:13px;"></textarea>
-    <button id="ms-dispute-btn" class="btn btn-red btn-sm mt-12">&#9888; Raise Dispute</button>
+    <button id="ms-dispute-btn" class="btn btn-red btn-sm mt-12">&#9888; {{ _('Raise Dispute') }}</button>
     <div id="ms-dispute-status" class="text-sm mt-12" style="color:var(--muted);"></div>
   </div>
 </details>
@@ -269,7 +269,21 @@
     try{ atob(key); }catch(e){ return {ok:false,msg:"That key is corrupted or incomplete. Re-copy it from where you saved it."}; }
     return {ok:true,key:key};
   }
-  async function makeConn(){ const c=new XMR.MoneroRpcConnection({uri:NODE}); try{await c.checkConnection(8000);}catch(e){} return c; }
+  async function makeConn(){
+    let last=null;
+    for(let i=0;i<4;i++){
+      const c=new XMR.MoneroRpcConnection({uri:NODE});
+      try{
+        await c.checkConnection(8000);
+        let ok=true;
+        try{ if(typeof c.isConnected==="function"){ ok=(await c.isConnected())!==false; } }catch(e){}
+        if(ok) return c;
+        last=c;
+      }catch(e){ last=null; }
+      if(i<3){ try{ setBanner("Connecting to the Monero node&hellip; (attempt "+(i+2)+" of 4)"); }catch(e){} await sleep(2000); }
+    }
+    return last || new XMR.MoneroRpcConnection({uri:NODE});
+  }
   // phase stepper + action banner + global conf bar + setup checklist
   let keySaved=(MS_STATE==="ready"||MS_STATE==="released");
   function setBanner(msg,tone){ const b=document.getElementById("ms-banner"); if(b&&msg!==undefined){ b.innerHTML=msg; b.className="ms-banner"+(tone?" ms-banner-"+tone:""); } }
@@ -336,7 +350,23 @@
         else { const j=await r.json().catch(()=>({})); alert(j.error||"send failed"); done=true; }
       }catch(e){ await new Promise(z=>setTimeout(z,1200)); } }
       btn.disabled=false; };
-    load(); setInterval(load,6000);
+    load();
+    var _doneSince=null;
+    var _chatTimer=setInterval(function(){
+      var bg=document.getElementById("ms-badge");
+      if(bg && /released/i.test(bg.textContent||"")){
+        if(!_doneSince) _doneSince=Date.now();
+        if(Date.now()-_doneSince > 300000){
+          clearInterval(_chatTimer);
+          if(inp) inp.disabled=true;
+          if(btn) btn.disabled=true;
+          box.insertAdjacentHTML("beforeend","<div style=\'padding:10px;color:var(--muted);font-size:12px;\'>This escrow is complete. Live updates have stopped - you can close this tab.</div>");
+          box.scrollTop=box.scrollHeight;
+          return;
+        }
+      }
+      load();
+    },6000);
   })();
   // dispute + refund
   (function(){
