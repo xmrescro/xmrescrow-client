@@ -232,6 +232,11 @@
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const gx=r=>(r&&r.getMultisigHex?r.getMultisigHex():r);
   const fmt=a=>(Number(a)/1e12).toFixed(8);
+  // Round a shortfall UP to displayed precision. Rounding down asked buyers for
+  // less than they owed, leaving sub-display dust and a permanently "underpaid"
+  // escrow that showed "send the remaining 0.00000000 XMR".
+  const fmtUp=a=>{const u=Number(a)/1e4;return (Math.ceil(u)/1e8).toFixed(8);};
+  const DUST=100000n; // 1e-7 XMR - absorbs rounding dust from topping up an underpayment
   const confBar=(n,t)=>{let h='<div style="display:flex;gap:3px;margin-top:8px;">';for(let i=0;i<t;i++)h+='<div style="flex:1;height:9px;border-radius:2px;background:'+(i<n?"var(--green)":"var(--border2)")+'"></div>';return h+"</div>";};
   const escq=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   function confirmReview(title, bodyHtml, okLabel){
@@ -398,8 +403,8 @@
         fails=0;
         const bal=BigInt(await w.getBalance()), unlocked=BigInt(await w.getUnlockedBalance());
         if(bal===0n){ el.innerHTML="⏳ Waiting for your deposit to arrive on-chain… <strong>0/10 blocks</strong>"+confBar(0,10); setPhase(2,"Fund the escrow — send <strong>"+fmt(expected)+" XMR</strong> to the address below."); }
-        else if(bal<expected){ el.innerHTML="<span style='color:var(--yellow)'>⚠ Underpaid — received "+fmt(bal)+" of "+fmt(expected)+" XMR. Send the remaining <strong>"+fmt(expected-bal)+" XMR</strong> to the same address.</span>"; setPhase(2,"&#9888; Underpaid — send the remaining <strong>"+fmt(expected-bal)+" XMR</strong> to the same address.","yellow"); setConf(0); }
-        else if(unlocked<bal){ let conf=0; try{ const _txs=await w.getTxs(); for(const _t of _txs){ const _c=_t.getNumConfirmations?_t.getNumConfirmations():0; if(_c!=null) conf=Math.max(conf,_c); } }catch(e){} const shown=Math.min(conf,10); el.innerHTML="<span style='color:var(--accent)'>✓ Received "+fmt(bal)+" XMR — confirming <strong>"+shown+"/10 blocks</strong> (unlocks at 10)…</span>"; setConf(shown); setPhase(3,"Deposit received — confirming <strong>"+shown+"/10 blocks</strong>."); }
+        else if(bal<expected-DUST){ el.innerHTML="<span style='color:var(--yellow)'>⚠ Underpaid — received "+fmt(bal)+" of "+fmt(expected)+" XMR. Send the remaining <strong>"+fmtUp(expected-bal)+" XMR</strong> to the same address.</span>"; setPhase(2,"&#9888; Underpaid — send the remaining <strong>"+fmtUp(expected-bal)+" XMR</strong> to the same address.","yellow"); setConf(0); }
+        else if(unlocked<bal){ let conf=null; try{ const _txs=await w.getTxs(); for(const _t of _txs){ const _c=_t.getNumConfirmations?_t.getNumConfirmations():null; if(_c!=null && (conf===null||_c<conf)) conf=_c; } }catch(e){} const shown=Math.min(conf===null?0:conf,10); el.innerHTML="<span style='color:var(--accent)'>✓ Received "+fmt(bal)+" XMR — confirming <strong>"+shown+"/10 blocks</strong> ("+Math.max(0,10-shown)+" to go)…</span>"; setConf(shown); setPhase(3,"Deposit received — confirming <strong>"+shown+"/10 blocks</strong>."); }
         else { el.innerHTML="<span style='color:var(--green)'>✓ Funded &amp; unlocked ("+fmt(unlocked)+" XMR).</span>"; setConf(10); setPhase(4,"&#10003; Funded — once you've received the goods, confirm delivery below to release the funds.","green"); const b=document.getElementById("ms-release"); b.style.display=""; b.onclick=()=>doRelease(w); return; }
       }catch(e){ fails++; el.innerHTML=(fails>6)?"⏳ The Monero node is catching up — this can take a few minutes. Leave this page open; it will resume automatically.":"⏳ Connecting to the network — reattempting…"; }
       await sleep(15000);
@@ -415,7 +420,13 @@
       await postSync(await w.exportMultisigHex());
       const o=await waitOthers("sync:0",["seller","operator"]); await w.importMultisigHex([o.seller,o.operator]);
       const net=BigInt(Math.round(s.net_xmr*1e12)), fee=BigInt(Math.round(s.fee_xmr*1e12));
-      const dests=[{address:s.payout,amount:net}]; if(s.fee_addr && fee>0n) dests.push({address:s.fee_addr,amount:fee});
+      // A deposit accepted within DUST can be a few piconero under net+fee.
+      // Clamp the seller amount so the build cannot fail; the fee stays whole and
+      // the dust falls on the party who already absorbs the network fee.
+      let _bal=BigInt(await w.getBalance()); let _net=net;
+      if(_net+fee>_bal){ _net=_bal-fee; }
+      if(_net<=0n) throw new Error("balance too low to build the payout");
+      const dests=[{address:s.payout,amount:_net}]; if(s.fee_addr && fee>0n) dests.push({address:s.fee_addr,amount:fee});
       rs.textContent="Building the payout transaction…";
       const txs=await w.createTxs({accountIndex:0,destinations:dests,subtractFeeFrom:[0],relay:false});
       const _hex=txs[0].getTxSet().getMultisigTxHex();
@@ -456,8 +467,8 @@
         const bal=BigInt(await w.getBalance()), unlocked=BigInt(await w.getUnlockedBalance());
         if(bal>0n && wrap){ wrap.classList.remove("ms-empty"); const ico=wrap.querySelector(".ms-empty-ico"); if(ico)ico.style.display="none"; }
         if(bal===0n){ el.innerHTML="Waiting for the buyer to fund the escrow — nothing for you to do yet."; setPhase(2,"Waiting for the buyer to fund the escrow&hellip;"); }
-        else if(bal<expected){ el.innerHTML="<span style=\'color:var(--yellow)\'>Buyer has sent "+fmt(bal)+" of "+fmt(expected)+" XMR so far.</span>"; setConf(0); setPhase(2,"Buyer has sent "+fmt(bal)+" of "+fmt(expected)+" XMR so far.","yellow"); }
-        else if(unlocked<bal){ let conf=0; try{ const _txs=await w.getTxs(); for(const _t of _txs){ const _c=_t.getNumConfirmations?_t.getNumConfirmations():0; if(_c!=null) conf=Math.max(conf,_c); } }catch(e){} const shown=Math.min(conf,10); el.innerHTML="<span style=\'color:var(--accent)\'>Deposit confirming <strong>"+shown+"/10 blocks</strong> (unlocks at 10)…</span>"; setConf(shown); setPhase(3,"Deposit confirming <strong>"+shown+"/10 blocks</strong>."); }
+        else if(bal<expected-DUST){ el.innerHTML="<span style=\'color:var(--yellow)\'>Buyer has sent "+fmt(bal)+" of "+fmt(expected)+" XMR so far.</span>"; setConf(0); setPhase(2,"Buyer has sent "+fmt(bal)+" of "+fmt(expected)+" XMR so far.","yellow"); }
+        else if(unlocked<bal){ let conf=null; try{ const _txs=await w.getTxs(); for(const _t of _txs){ const _c=_t.getNumConfirmations?_t.getNumConfirmations():null; if(_c!=null && (conf===null||_c<conf)) conf=_c; } }catch(e){} const shown=Math.min(conf===null?0:conf,10); el.innerHTML="<span style=\'color:var(--accent)\'>Deposit confirming <strong>"+shown+"/10 blocks</strong> ("+Math.max(0,10-shown)+" to go)…</span>"; setConf(shown); setPhase(3,"Deposit confirming <strong>"+shown+"/10 blocks</strong>."); }
         else { el.innerHTML="<span style=\'color:var(--green)\'>&#10003; Deposit funded &amp; unlocked ("+fmt(unlocked)+" XMR). Waiting for the buyer to confirm delivery &amp; release.</span>"; setConf(10); setPhase(4,"&#10003; Funded — waiting for the buyer to confirm delivery &amp; release.","green"); return; }
       }catch(e){ fails++; el.innerHTML=(fails>6)?"The Monero node is catching up — this can take a few minutes. Leave this page open.":"Connecting to the network…"; }
       await sleep(15000);
