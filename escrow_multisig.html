@@ -85,6 +85,13 @@
   <div class="step{% if escrow.ms_state == 'released' %} done{% endif %}" data-ph="5"><span class="step-num">5</span>Done</div>
 </div>
 <div id="ms-banner" class="ms-banner{% if escrow.ms_state=='released' %} ms-banner-green{% endif %}">{% if escrow.ms_state=='released' %}&#10003; This escrow has been released.{% elif escrow.ms_state=='ready' %}Restore your wallet with your saved key to continue.{% else %}Loading the in-browser wallet&hellip; Do not close or refresh this tab during setup.{% endif %}</div>
+{% if escrow.ms_state == 'released' %}
+<div class="card" style="border-color:rgba(129,140,248,.4); background:rgba(129,140,248,.05);">
+  <div class="card-title" style="color:#818cf8;">{{ _('How did that go?') }}</div>
+  <p class="text-sm text-muted" style="line-height:1.7;">{{ _('If anything was confusing or broken, telling us is the only way it gets fixed. Anonymous, no account, and we do not link feedback to your escrow.') }}
+    <a href="/feedback">{{ _('Leave feedback') }} &#8594;</a></p>
+</div>
+{% endif %}
 <div id="ms-conf"><div class="ms-conf-label">Deposit confirmations: <strong id="ms-conf-n">0</strong>/10</div><div id="ms-conf-bar"></div></div>
 
 {% if escrow.ms_state not in ('ready','released') %}
@@ -409,8 +416,20 @@
       const o=await waitOthers("sync:0",["seller","operator"]); await w.importMultisigHex([o.seller,o.operator]);
       const net=BigInt(Math.round(s.net_xmr*1e12)), fee=BigInt(Math.round(s.fee_xmr*1e12));
       const dests=[{address:s.payout,amount:net}]; if(s.fee_addr && fee>0n) dests.push({address:s.fee_addr,amount:fee});
+      rs.textContent="Building the payout transaction…";
+      const txs=await w.createTxs({accountIndex:0,destinations:dests,subtractFeeFrom:[0],relay:false});
+      const _hex=txs[0].getTxSet().getMultisigTxHex();
+      rs.textContent="Decoding the transaction so you can check it…";
+      const _bd=await txDestinations(w,_hex);
+      const _agreed=BigInt(Math.round(AMOUNT*1e12));
+      let _pre="";
+      if((net+fee)!==_agreed){ _pre+='<p class="text-sm" style="color:var(--red);margin-bottom:10px;">&#9888; The amounts changed since this page loaded. Do not sign - reload and check.</p>'; }
+      if(_bd){
+        _pre+='<p class="text-sm text-muted" style="margin-bottom:10px;">Read from the transaction itself, not from this page:</p>';
+        for(let i=0;i<_bd.length;i++){ _pre+='<div class="data-row"><span class="data-key">Pays</span><span class="data-val text-green">'+fmt(_bd[i].amt)+' XMR</span></div><div class="data-row"><span class="data-key">To</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(_bd[i].addr)+'</span></div>'; }
+      } else { _pre+='<p class="text-sm text-muted" style="margin-bottom:10px;">This transaction could not be decoded in your browser, so the values below are only what the server reports.</p>'; }
       rs.textContent="Review the payment before signing.";
-      const okReview=await confirmReview("Review before you sign",
+      const okReview=await confirmReview("Review before you sign", _pre+
         '<p class="text-sm text-muted" style="margin-bottom:10px;">Check this carefully. Once signed and co-signed, it cannot be reversed.</p>'+
         '<div class="data-row"><span class="data-key">Seller receives</span><span class="data-val text-green">'+fmt(net)+' XMR</span></div>'+
         '<div class="data-row"><span class="data-key">To address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(s.payout)+'</span></div>'+
@@ -418,9 +437,7 @@
         '<p class="text-sm text-muted" style="margin-top:10px;">If the seller address does not match what they gave you privately, cancel and raise a dispute.</p>',
         "Confirm and sign");
       if(!okReview){ rs.innerHTML="<span style=\'color:var(--muted)\'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
-      rs.textContent="Building the payout transaction…";
-      const txs=await w.createTxs({accountIndex:0,destinations:dests,subtractFeeFrom:[0],relay:false});
-      await postTx("partial", txs[0].getTxSet().getMultisigTxHex());
+      await postTx("partial", _hex);
       rs.innerHTML="<span style='color:var(--accent)'>✓ Signed. Waiting for the seller to co-sign &amp; broadcast…</span>"; setBanner("&#10003; Signed — waiting for the seller to co-sign &amp; broadcast.");
       for(let i=0;i<180;i++){ try{ const s2=await getState(); if(s2.released){ rs.innerHTML="<span style='color:var(--green)'>✓✓ Released! Payout TX: <span class='mono' style='font-size:11px'>"+escq(s2.tx||"")+"</span></span>"; document.getElementById("ms-badge").textContent="Released"; setPhase(5,"&#10003;&#10003; Released — payout broadcast. You're done; you can close this page.","green"); return; } }catch(e){} await sleep(4000); }
       rs.innerHTML="<span style='color:var(--yellow)'>Still waiting — the seller must have their page open to co-sign.</span>"; setBanner("Waiting for the seller — they must have their page open to co-sign.","yellow");
@@ -525,6 +542,24 @@
       const o1=await waitOthers("rsync:0",["operator"]); await w.importMultisigHex([o1.operator]);
       rs.textContent="Operator is building your payout...";
       const o2=await waitOthers("rtx:0",["operator"]);
+      rs.textContent="Decoding the transaction so you can check it…";
+      const _dec=await txDestinations(w, o2.operator);
+      let _body="";
+      if(_dec){
+        _body='<p class="text-sm text-muted" style="margin-bottom:10px;">These destinations were read from the transaction itself, not from this page.</p>';
+        for(let i=0;i<_dec.length;i++){
+          _body+='<div class="data-row"><span class="data-key">Pays</span><span class="data-val text-green">'+fmt(_dec[i].amt)+' XMR</span></div>'+
+                 '<div class="data-row"><span class="data-key">To</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(_dec[i].addr)+'</span></div>';
+        }
+        _body+='<p class="text-sm text-muted" style="margin-top:10px;">One of these must be your own address. If none of them is, cancel and say so in the chat before signing.</p>';
+      } else {
+        let _rv=null; try{ _rv=await getState(); }catch(e){}
+        const _mine=(ruling==="refund")?((_rv&&_rv.refund_addr)||""):((_rv&&_rv.payout)||"");
+        _body='<p class="text-sm text-muted">This transaction could not be decoded in your browser, so it cannot be independently verified here. The value below is what the server reports.</p>'+
+              '<div class="data-row"><span class="data-key">Your address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(_mine)+'</span></div>';
+      }
+      const _okR=await confirmReview("Review before you co-sign", _body, "Confirm and co-sign");
+      if(!_okR){ rs.innerHTML="<span style='color:var(--muted)'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
       rs.textContent="Co-signing and broadcasting...";
       const sr=await w.signMultisigTxHex(o2.operator); const signed=sr.getSignedMultisigTxHex();
       const hashes=await w.submitMultisigTxHex(signed); const tx=(hashes&&hashes[0])||"";

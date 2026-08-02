@@ -2,6 +2,13 @@
 
 Four checks, in order of importance.
 
+> **Line endings matter.** Every hash in `HASHES.txt` is the hash of the file **as served**, which uses LF. Git on Windows may convert files under `static/` to CRLF on checkout, which changes their hash and makes an honest verification fail. If a hash does not match, check this first:
+>
+>     git config core.autocrlf        # if "true", see below
+>     git cat-file blob HEAD:static/xmrescrow-msig.bundle.js | sha256sum
+>
+> The `git cat-file` form hashes the committed content directly and is always correct. To fix an existing checkout: `git add --renormalize . && git checkout -- .`
+
 ## 1. The wallet library is official monero-ts, unmodified
 
 `static/monero.js` and `static/monero.worker.js` are the WebAssembly Monero wallet that does the actual cryptography. They are copied unmodified from **monero-ts v0.11.10**. Verify byte-for-byte:
