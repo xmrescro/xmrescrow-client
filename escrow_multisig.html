@@ -194,8 +194,8 @@
   <div class="text-sm text-muted">A dispute has been raised. The operator is reviewing and will co-sign a fair resolution. Use the chat below to explain and share evidence.</div>
 </div>
 {% endif %}
-{% if role == 'buyer' and escrow.ms_state == 'ready' %}
-<div class="card" id="ms-refund-card">
+{% if role == 'buyer' %}
+<div class="card" id="ms-refund-card" style="display:none;">
   <div class="card-title">Refund Address <span class="text-muted" style="font-weight:400; font-size:12px;">(recommended)</span></div>
   <p class="text-sm text-muted" style="margin-bottom:10px;">If a dispute is resolved in your favor, your refund is sent here. Set it now so you're covered.</p>
   <input type="text" id="ms-refund-in" class="mono" placeholder="Your XMR refund address" style="font-size:12px;" value="{{ escrow.refund_address or '' }}">
@@ -203,8 +203,8 @@
   <div id="ms-refund-status" class="text-sm mt-12" style="color:var(--muted);">{% if escrow.refund_address %}&#10003; Saved.{% endif %}</div>
 </div>
 {% endif %}
-{% if role and escrow.ms_state == 'ready' %}
-<details class="card" id="ms-dispute-card" style="border-color:rgba(239,68,68,.2);">
+{% if role %}
+<details class="card" id="ms-dispute-card" style="display:none; border-color:rgba(239,68,68,.2);">
   <summary>&#9888; Problem with this trade?</summary>
   <div class="ms-dispute-body">
     <p class="text-sm text-muted" style="margin-bottom:10px;">If the other party won't cooperate, raise a dispute. The operator reviews and co-signs a fair resolution - refund to buyer or release to seller. Explain clearly in the chat and provide evidence.</p>
@@ -391,7 +391,36 @@
         if(j.ok){ ds.innerHTML="<span style=\'color:var(--red)\'>&#9888; Dispute raised. The operator has been notified.</span>"; showDispute(); } else { ds.textContent=j.error||"failed"; dbtn.disabled=false; } }catch(e){ ds.textContent="failed"; dbtn.disabled=false; } };
     if(rbtn) rbtn.onclick=async()=>{ const a=document.getElementById("ms-refund-in").value.trim(); const rs=document.getElementById("ms-refund-status"); if(a.length<90){ rs.textContent="Enter a valid Monero address."; return; } rs.textContent="Saving...";
       try{ const r=await fetch(`/e/${EID}/msig/set_refund`,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({token:TOKEN,address:a})}); const j=await r.json(); rs.innerHTML=j.ok?"<span style=\'color:var(--green)\'>&#10003; Refund address saved.</span>":(j.error||"failed"); }catch(e){ rs.textContent="failed"; } };
-    (async()=>{ try{ const s=await (await fetch(`/e/${EID}/msig/state?t=${encodeURIComponent(TOKEN)}`)).json(); if(s.dispute) showDispute(); }catch(e){} })();
+    // Cards were gated on SERVER-RENDERED ms_state: a party who opened their link
+    // during setup never got them, because the page never re-renders. Live now.
+    var _rulingShown=false;
+    function _syncDisputeUi(s){
+      var rcard=document.getElementById("ms-refund-card");
+      var live=!!(s && s.ms_state==="ready" && !s.released);
+      // A ruling usually lands while both pages are already open. showNext() only
+      // checked it once at wallet load, so the resolve UI never appeared.
+      if(s && s.dispute_ruling && !s.released && !_rulingShown){
+        var _w=window._msigWallet;
+        var _winner=(s.dispute_ruling==="refund")?"buyer":"seller";
+        if(ROLE===_winner && !_w){ setBanner("&#9878; The operator ruled in your favour - restore your wallet above to co-sign and receive your funds.","yellow"); return; }
+        _rulingShown=true;
+        if(dcard) dcard.style.display="none";
+        if(rcard) rcard.style.display="none";
+        var _rb=document.getElementById("ms-release"); if(_rb) _rb.style.display="none";
+        var _cb=document.getElementById("ms-cosign"); if(_cb) _cb.style.display="none";
+        if(ROLE===_winner){ showResolve(_w,s.dispute_ruling); } else { showDisputeResolving(s.dispute_ruling); }
+        return;
+      }
+      if(s && s.dispute){ showDispute(); if(rcard) rcard.style.display="none"; return; }
+      if(dcard) dcard.style.display=live?"":"none";
+      if(rcard) rcard.style.display=live?"":"none";
+    }
+    (async function(){
+      for(;;){
+        try{ const s=await (await fetch(`/e/${EID}/msig/state?t=${encodeURIComponent(TOKEN)}`)).json(); _syncDisputeUi(s); if(s&&s.released) return; }catch(e){}
+        await sleep(10000);
+      }
+    })();
   })();
 
   // BUYER deposit watch + release
@@ -415,6 +444,18 @@
     try{
       rs.textContent="Checking seller payout address…"; let s=await getStateR();
       if(!s.payout){ rs.innerHTML="<span style='color:var(--red)'>Seller hasn't set their payout address yet — ask them in chat.</span>"; b.disabled=false; return; }
+      const _net0=BigInt(Math.round(s.net_xmr*1e12)), _fee0=BigInt(Math.round(s.fee_xmr*1e12));
+      const _agreed0=BigInt(Math.round(AMOUNT*1e12));
+      let _iw="";
+      if((_net0+_fee0)!==_agreed0){ _iw='<p class="text-sm" style="color:var(--red);margin-bottom:10px;">&#9888; Amounts changed since this page loaded. Do not release - reload and check.</p>'; }
+      const _okIntent=await confirmReview("Review before you release",
+        _iw+'<p class="text-sm text-muted" style="margin-bottom:10px;">This is what will be signed. Once signed and co-signed it cannot be reversed.</p>'+
+        '<div class="data-row"><span class="data-key">Seller receives</span><span class="data-val text-green">'+fmt(_net0)+' XMR</span></div>'+
+        '<div class="data-row"><span class="data-key">To address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(s.payout)+'</span></div>'+
+        (_fee0>0n?'<div class="data-row"><span class="data-key">Service fee</span><span class="data-val">'+fmt(_fee0)+' XMR</span></div>':'')+
+        '<p class="text-sm text-muted" style="margin-top:10px;">If this is not the address the seller gave you privately, cancel and raise a dispute. The network fee comes out of the seller amount, so the final figure is slightly lower.</p>',
+        "Confirm and release");
+      if(!_okIntent){ rs.innerHTML="<span style='color:var(--muted)'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
       rs.textContent="Syncing wallet…"; await w.sync(); try{await w.getOutputs();}catch(e){}
       rs.textContent="Exchanging signing data with the other party (keep both pages open)…"; setBanner("Releasing — exchanging signatures. Keep this page open.");
       await postSync(await w.exportMultisigHex());
@@ -439,15 +480,26 @@
         _pre+='<p class="text-sm text-muted" style="margin-bottom:10px;">Read from the transaction itself, not from this page:</p>';
         for(let i=0;i<_bd.length;i++){ _pre+='<div class="data-row"><span class="data-key">Pays</span><span class="data-val text-green">'+fmt(_bd[i].amt)+' XMR</span></div><div class="data-row"><span class="data-key">To</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(_bd[i].addr)+'</span></div>'; }
       } else { _pre+='<p class="text-sm text-muted" style="margin-bottom:10px;">This transaction could not be decoded in your browser, so the values below are only what the server reports.</p>'; }
-      rs.textContent="Review the payment before signing.";
-      const okReview=await confirmReview("Review before you sign", _pre+
-        '<p class="text-sm text-muted" style="margin-bottom:10px;">Check this carefully. Once signed and co-signed, it cannot be reversed.</p>'+
-        '<div class="data-row"><span class="data-key">Seller receives</span><span class="data-val text-green">'+fmt(net)+' XMR</span></div>'+
-        '<div class="data-row"><span class="data-key">To address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(s.payout)+'</span></div>'+
-        (fee>0n?'<div class="data-row"><span class="data-key">Service fee</span><span class="data-val">'+fmt(fee)+' XMR</span></div>':'')+
-        '<p class="text-sm text-muted" style="margin-top:10px;">If the seller address does not match what they gave you privately, cancel and raise a dispute.</p>',
-        "Confirm and sign");
-      if(!okReview){ rs.innerHTML="<span style=\'color:var(--muted)\'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
+      // Verify the BUILT tx against what was approved. An unexpected destination is
+      // the attack; a smaller seller amount is just the network fee (subtractFeeFrom).
+      const _big=function(v){ return (typeof v==="bigint")?v:BigInt(v); };
+      let _bad=null;
+      if(_bd){
+        const _okAddrs=[s.payout]; if(s.fee_addr) _okAddrs.push(s.fee_addr);
+        for(let i=0;i<_bd.length;i++){ if(_okAddrs.indexOf(_bd[i].addr)===-1){ _bad="it pays an address you did not approve"; break; } }
+        if(!_bad){ let _seen=false;
+          for(let i=0;i<_bd.length;i++){ if(_bd[i].addr===s.payout){ _seen=true; if(_big(_bd[i].amt)>_net) _bad="the seller amount is larger than you approved"; } }
+          if(!_seen) _bad="the seller address is not in the transaction"; }
+        if(!_bad && s.fee_addr && fee>0n){ for(let i=0;i<_bd.length;i++){ if(_bd[i].addr===s.fee_addr && _big(_bd[i].amt)!==fee) _bad="the service fee amount changed"; } }
+      }
+      if(_bad){ rs.innerHTML="<span style='color:var(--red)'>Stopped before signing: "+escq(_bad)+". Nothing was signed - raise a dispute.</span>"; setBanner("&#9888; Stopped before signing - the transaction did not match what you approved.","red"); b.disabled=false; return; }
+      if(!_bd){
+        const okReview=await confirmReview("Confirm without in-browser verification", _pre+
+          '<p class="text-sm text-muted" style="margin-top:10px;">Your browser could not decode the transaction, so it could not be checked independently here.</p>',
+          "Sign anyway");
+        if(!okReview){ rs.innerHTML="<span style='color:var(--muted)'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
+      }
+      rs.textContent="Signing...";
       await postTx("partial", _hex);
       rs.innerHTML="<span style='color:var(--accent)'>✓ Signed. Waiting for the seller to co-sign &amp; broadcast…</span>"; setBanner("&#10003; Signed — waiting for the seller to co-sign &amp; broadcast.");
       for(let i=0;i<180;i++){ try{ const s2=await getState(); if(s2.released){ rs.innerHTML="<span style='color:var(--green)'>✓✓ Released! Payout TX: <span class='mono' style='font-size:11px'>"+escq(s2.tx||"")+"</span></span>"; document.getElementById("ms-badge").textContent="Released"; setPhase(5,"&#10003;&#10003; Released — payout broadcast. You're done; you can close this page.","green"); return; } }catch(e){} await sleep(4000); }
@@ -506,6 +558,16 @@
   async function sellerCosign(w,b,st){
     b.disabled=true;
     try{
+      let _si=null; try{ _si=await getState(); }catch(e){}
+      const _sExp=_si?fmt(BigInt(Math.round((_si.net_xmr||0)*1e12))):"unknown";
+      const _sAddr=(_si&&_si.payout)||"";
+      const _okI=await confirmReview("Review before you co-sign",
+        '<p class="text-sm text-muted" style="margin-bottom:10px;">The buyer confirmed delivery. Co-signing sends the funds to you and completes the trade.</p>'+
+        '<div class="data-row"><span class="data-key">You receive</span><span class="data-val text-green">'+_sExp+' XMR</span></div>'+
+        '<div class="data-row"><span class="data-key">To your address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(_sAddr)+'</span></div>'+
+        '<p class="text-sm text-muted" style="margin-top:10px;">The network fee comes out of this amount. The real transaction is checked against this before anything is signed.</p>',
+        "Confirm and co-sign");
+      if(!_okI){ st.innerHTML="<span style='color:var(--muted)'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
       st.innerHTML="Syncing your wallet…"; setBanner("Co-signing — keep this page open."); await w.sync(); try{await w.getOutputs();}catch(e){}
       st.innerHTML="Exchanging signing data with the other party (keep both pages open)…"; await postSync(await w.exportMultisigHex());
       const o=await waitOthers("sync:0",["buyer","operator"]); await w.importMultisigHex([o.buyer,o.operator]);
@@ -526,8 +588,17 @@
              '<div class="data-row"><span class="data-key">Expected to you</span><span class="data-val text-green">'+(_sv?fmt(BigInt(Math.round((_sv.net_xmr||0)*1e12))):'unknown')+' XMR</span></div>'+
              '<div class="data-row"><span class="data-key">Your payout address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq((_sv&&_sv.payout)||'')+'</span></div>';
       }
-      const okSign=await confirmReview("Review before you co-sign", body, "Confirm and co-sign");
-      if(!okSign){ st.innerHTML="<span style=\'color:var(--muted)\'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
+      let _bad2=null;
+      if(decoded){
+        if(!_sAddr) _bad2="your payout address is not set";
+        else { let _mine=false; for(let i=0;i<decoded.length;i++){ if(decoded[i].addr===_sAddr) _mine=true; }
+          if(!_mine) _bad2="your payout address is not one of the destinations"; }
+      }
+      if(_bad2){ st.innerHTML="<span style='color:var(--red)'>Stopped before co-signing: "+escq(_bad2)+". Nothing was signed - raise a dispute.</span>"; setBanner("&#9888; Stopped before co-signing - the transaction did not match.","red"); b.disabled=false; return; }
+      if(!decoded){
+        const okSign=await confirmReview("Confirm without in-browser verification", body, "Sign anyway");
+        if(!okSign){ st.innerHTML="<span style='color:var(--muted)'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
+      }
       st.innerHTML="Co-signing and broadcasting…"; const sr=await w.signMultisigTxHex(to.buyer); const signed=sr.getSignedMultisigTxHex();
       const hashes=await w.submitMultisigTxHex(signed); const tx=(hashes&&hashes[0])||"";
       await apiPost(`/e/${EID}/msig/released`,{token:TOKEN,txhash:tx});
@@ -537,6 +608,9 @@
   }
 
   function showResolve(w,ruling){
+    // Both the restore path (showNext) and the live poll can reach here on a
+    // refresh-and-restore. Guard on the DOM so the card cannot be added twice.
+    if(document.getElementById("ms-resolve-btn")) return;
     const label=ruling==="refund"?"refund":"release";
     setBanner("&#9878; Operator ruled: <strong>"+label.toUpperCase()+"</strong> in your favor — co-sign below to receive your funds.","green");
     const c=document.createElement("div"); c.className="card"; c.style.borderColor="#818cf8";
@@ -547,30 +621,36 @@
   async function doResolve(w,ruling){
     const rs=document.getElementById("ms-resolve-status"), b=document.getElementById("ms-resolve-btn"); b.disabled=true;
     try{
+      let _rv0=null; try{ _rv0=await getState(); }catch(e){}
+      const _mine0=(ruling==="refund")?((_rv0&&_rv0.refund_addr)||""):((_rv0&&_rv0.payout)||"");
+      const _okI=await confirmReview("Review before you co-sign",
+        '<p class="text-sm text-muted" style="margin-bottom:10px;">The operator ruled in your favour and has built a transaction paying you. Co-signing completes it.</p>'+
+        '<div class="data-row"><span class="data-key">Pays to your address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(_mine0)+'</span></div>'+
+        '<p class="text-sm text-muted" style="margin-top:10px;">The network fee comes out of this payment. The real transaction is checked against this address before anything is signed.</p>',
+        "Confirm and co-sign");
+      if(!_okI){ rs.innerHTML="<span style='color:var(--muted)'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
       rs.textContent="Syncing your wallet..."; await w.sync(); try{await w.getOutputs();}catch(e){}
       rs.textContent="Requesting the operator co-signature (keep this open)...";
       await apiPost(`/e/${EID}/msig/resolve_sync`,{token:TOKEN,blob:await w.exportMultisigHex()});
       const o1=await waitOthers("rsync:0",["operator"]); await w.importMultisigHex([o1.operator]);
       rs.textContent="Operator is building your payout...";
       const o2=await waitOthers("rtx:0",["operator"]);
-      rs.textContent="Decoding the transaction so you can check it…";
+      rs.textContent="Checking the transaction against what you approved...";
       const _dec=await txDestinations(w, o2.operator);
-      let _body="";
+      let _bad3=null;
       if(_dec){
-        _body='<p class="text-sm text-muted" style="margin-bottom:10px;">These destinations were read from the transaction itself, not from this page.</p>';
-        for(let i=0;i<_dec.length;i++){
-          _body+='<div class="data-row"><span class="data-key">Pays</span><span class="data-val text-green">'+fmt(_dec[i].amt)+' XMR</span></div>'+
-                 '<div class="data-row"><span class="data-key">To</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(_dec[i].addr)+'</span></div>';
-        }
-        _body+='<p class="text-sm text-muted" style="margin-top:10px;">One of these must be your own address. If none of them is, cancel and say so in the chat before signing.</p>';
-      } else {
-        let _rv=null; try{ _rv=await getState(); }catch(e){}
-        const _mine=(ruling==="refund")?((_rv&&_rv.refund_addr)||""):((_rv&&_rv.payout)||"");
-        _body='<p class="text-sm text-muted">This transaction could not be decoded in your browser, so it cannot be independently verified here. The value below is what the server reports.</p>'+
-              '<div class="data-row"><span class="data-key">Your address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(_mine)+'</span></div>';
+        if(!_mine0) _bad3="your address is not set";
+        else { let _has=false; for(let i=0;i<_dec.length;i++){ if(_dec[i].addr===_mine0) _has=true; }
+          if(!_has) _bad3="your address is not one of the destinations"; }
       }
-      const _okR=await confirmReview("Review before you co-sign", _body, "Confirm and co-sign");
-      if(!_okR){ rs.innerHTML="<span style='color:var(--muted)'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
+      if(_bad3){ rs.innerHTML="<span style='color:var(--red)'>Stopped before co-signing: "+escq(_bad3)+". Nothing was signed - say so in the chat.</span>"; setBanner("&#9888; Stopped before co-signing - the transaction did not match.","red"); b.disabled=false; return; }
+      if(!_dec){
+        const _okR=await confirmReview("Confirm without in-browser verification",
+          '<p class="text-sm text-muted">Your browser could not decode the transaction, so it could not be checked independently here.</p>'+
+          '<div class="data-row"><span class="data-key">Your address</span><span class="data-val mono" style="font-size:11px;word-break:break-all;">'+escq(_mine0)+'</span></div>',
+          "Sign anyway");
+        if(!_okR){ rs.innerHTML="<span style='color:var(--muted)'>Cancelled - nothing was signed.</span>"; b.disabled=false; return; }
+      }
       rs.textContent="Co-signing and broadcasting...";
       const sr=await w.signMultisigTxHex(o2.operator); const signed=sr.getSignedMultisigTxHex();
       const hashes=await w.submitMultisigTxHex(signed); const tx=(hashes&&hashes[0])||"";
@@ -580,9 +660,10 @@
     }catch(e){ rs.innerHTML="<span style=\'color:var(--red)\'>Resolve error: "+(e.message||e)+"</span>"; b.disabled=false; }
   }
   function showDisputeResolving(ruling){
+    if(document.getElementById("ms-dispute-ruled")) return;
     const other=ruling==="refund"?"buyer":"seller";
     setBanner("&#9878; Dispute ruled: <strong>"+ruling.toUpperCase()+"</strong> — the "+other+" co-signs with the operator to complete it.","red");
-    const c=document.createElement("div"); c.className="card"; c.style.borderColor="rgba(239,68,68,.4)";
+    const c=document.createElement("div"); c.id="ms-dispute-ruled"; c.className="card"; c.style.borderColor="rgba(239,68,68,.4)";
     c.innerHTML='<div class="card-title" style="color:var(--red);">&#9878; Dispute ruled: '+ruling.toUpperCase()+'</div><p class="text-sm text-muted">The operator ruled to '+ruling+' the funds to the '+other+'. They co-sign to complete it. If you believe this is wrong, message the operator in the chat below.</p>';
     const chat=document.getElementById("ms-chat"); chat.parentNode.insertBefore(c,chat);
   }
