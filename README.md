@@ -42,7 +42,9 @@ Commits in this repository are PGP-signed by the XMREscrow operator key:
 
 The same fingerprint is published at https://xmrescrow.app/pgp, in the signed
 warrant canary at https://xmrescrow.app/canary (verify with `gpg --verify`),
-and on the @xmrescrow profile. Cross-check them. A commit without a green
+and on the onion site at
+xmrescrobcw33cnm5ajyzn5xaqr5vkdsqxmptc55plgvxsnqybmhszqd.onion/pgp
+Cross-check them. A commit without a green
 "Verified" badge carrying this key is not from the operator. Do not trust, verify.
 
 

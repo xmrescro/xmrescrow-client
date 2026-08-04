@@ -4,7 +4,7 @@ Add Monero **2-of-3 multisig escrow** to your site in one line. No JavaScript, n
 
 ## 1. Get a partner code
 
-Request a referral code — it attributes deals to you (a revenue share, or a discount for your users — your choice). Contact via [xmrescrow.app/partners](https://xmrescrow.app/partners) (Telegram / XMPP / PGP).
+Request a referral code — it attributes deals to you (a revenue share, or a discount for your users — your choice). Contact via [xmrescrow.app/partners](https://xmrescrow.app/partners) (XMPP / PGP).
 
 ## 2. Paste a snippet (swap `YOURCODE`)
 
