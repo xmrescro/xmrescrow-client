@@ -38,9 +38,14 @@ MIT — see [LICENSE](LICENSE).
 
 Commits in this repository are PGP-signed by the XMREscrow operator key:
 
-    CD37 A312 8254 2C2A CE91 FED3 A345 CD6C 2674 D00A
+    F81E 8FCC B6DB 8B16 F151 3FC8 5D3F F43E 3C6D AFAD
 
-The same fingerprint is published at https://xmrescrow.app/pgp, in the signed
+Commits made before 2026-08-05 are signed with the retired key
+CD37 A312 8254 2C2A CE91 FED3 A345 CD6C 2674 D00A. That key was rotated, not
+compromised, and the handover is documented in a statement signed by BOTH keys:
+https://xmrescrow.app/transition.txt - verify it before trusting the new key.
+
+The current fingerprint is published at https://xmrescrow.app/pgp, in the signed
 warrant canary at https://xmrescrow.app/canary (verify with `gpg --verify`),
 and on the onion site at
 xmrescrobcw33cnm5ajyzn5xaqr5vkdsqxmptc55plgvxsnqybmhszqd.onion/pgp
